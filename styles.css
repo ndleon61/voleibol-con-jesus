@@ -99,3 +99,39 @@ th{
     margin: 0;
     font-size: 18px;
 }
+
+.game-status {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.game-status.scheduled {
+    background: #eee;
+    color: #555;
+}
+
+.game-status.live {
+    background: #ffe5e5;
+    color: #c00;
+}
+
+.game-status.finished {
+    background: #e5e5e5;
+    color: #333;
+}
+
+.set-scores {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.set-scores p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: #666;
+}
