@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box;
+}
+
 body{
     margin: 0;
     font-family: Arial, sans-serif;
@@ -5,34 +9,37 @@ body{
     color: #222;
 }
 
-header{
+header {
     background: #ffffff;
-    padding: 20px;
+    padding: 16px;
     border-bottom: 1px solid #ddd;
 }
 
-header h1{
-    margin: 0 0 15px 0;
-    text-align: center;
+header h1 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
 }
 
-nav{
+nav {
     display: flex;
-    justify-content: center;
-    gap: 20px;
-    
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
 }
 
-nav a{
+nav a {
     text-decoration: none;
     color: #333;
     font-weight: bold;
+    padding: 8px 10px;
+    white-space: nowrap;
 }
 
 main{
-   max-width: 900px;
-   margin: 0 auto;
-   padding: 20px;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px;
 }
 
 .hero{
@@ -42,10 +49,10 @@ main{
     margin-bottom: 20px;
 }
 
-section{
+section {
     background: white;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
     border-radius: 12px;
 }
 
@@ -72,38 +79,43 @@ th{
 }
 .jornada-card {
     margin-bottom: 20px;
-    padding: 20px;
+    padding: 16px;
     border: 1px solid #ddd;
     border-radius: 12px;
     background: #ffffff;
 }
 
 .jornada-card h3 {
-    margin-top: 0;
+    margin: 0 0 12px 0;
+    font-size: 20px;
 }
 
 .match-card {
-    padding: 15px;
+    padding: 16px;
     margin-top: 10px;
-    border: 1px solid #eee;
-    border-radius: 8px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
     background: #fafafa;
 }
 
+.match-card h3,
+.match-card h4 {
+    margin: 0 0 8px 0;
+}
+
 .match-card p {
-    margin: 0 0 5px 0;
+    margin: 0 0 6px 0;
     color: #666;
 }
 
 .match-card h4 {
-    margin: 0;
     font-size: 18px;
 }
 
 .game-status {
     display: inline-block;
     margin-top: 8px;
-    padding: 5px 10px;
+    padding: 6px 12px;
     border-radius: 20px;
     font-size: 14px;
     font-weight: bold;
@@ -134,4 +146,72 @@ th{
     margin: 4px 0;
     font-size: 14px;
     color: #666;
+}
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+.team-card {
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.team-card h3 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+}
+
+.team-card h4 {
+    margin: 16px 0 8px 0;
+}
+
+.team-card p {
+    margin: 6px 0;
+}
+
+.team-card h4 {
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+}
+.team-header {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.team-header:focus-visible {
+    outline: 2px solid #333;
+    outline-offset: 4px;
+}
+
+.team-toggle {
+    font-size: 20px;
+}
+
+.team-details {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.team-card.expanded .team-details {
+    max-height: 1000px;
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .team-details {
+        transition: none;
+    }
 }

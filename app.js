@@ -100,13 +100,26 @@ const jornadas = [
    
 ]
 
-
+// Functions
 
 function calculateSets(results) {
+  if (!isValidMatch(results)) {
+    return {
+      team1Sets: 0,
+      team2Sets: 0,
+    };
+  }
+
   let team1Sets = 0;
   let team2Sets = 0;
 
-  results.sets.forEach(function (set) {
+  results.sets.forEach(function (set, index) {
+    const setNumber = index + 1;
+
+    if (!isValidSet(set, setNumber)) {
+      return;
+    }
+
     if (set.team1Points > set.team2Points) {
       team1Sets++;
     }
@@ -120,6 +133,49 @@ function calculateSets(results) {
     team1Sets,
     team2Sets,
   };
+}
+
+function isValidSet(set, setNumber) {
+    const pointsToWin = setNumber === 5 ? 15 : 25;
+
+    const team1Wins = set.team1Points >= pointsToWin &&
+                      set.team1Points - set.team2Points >= 2;
+
+    const team2Wins = set.team2Points >= pointsToWin &&
+                      set.team2Points - set.team1Points >= 2;
+
+    return team1Wins || team2Wins;
+}
+
+function isValidMatch(results) {
+  const sets = results.sets;
+
+  if (sets.length < 3 || sets.length > 5) {
+    return false;
+  }
+
+  let team1Sets = 0;
+  let team2Sets = 0;
+
+  sets.forEach(function (set, index) {
+    const setNumber = index + 1;
+
+    if (!isValidSet(set, setNumber)) {
+      return;
+    }
+
+    if (set.team1Points > set.team2Points) {
+      team1Sets++;
+    } else {
+      team2Sets++;
+    }
+  });
+
+  if (team1Sets >= 3 || team2Sets >= 3) {
+    return true;
+  }
+
+  return false;
 }
 
 function getStatusText(status) {
@@ -177,6 +233,7 @@ function calculateStandings() {
   return table;
 }
 
+// STANDINGS 
 
 const standings = document.getElementById("standings");
 
@@ -260,12 +317,16 @@ const teamsContainer = document.getElementById("teams");
 teamsContainer.innerHTML = "";
 
 teams.forEach(function (team) {
-  const teamCard = document.createElement("div");
+  
+    const teamCard = document.createElement("div");
 
-  teamCard.classList.add("jornada-card");
+    teamCard.classList.add("team-card");
 
-  const table = calculateStandings();
-  const teamStats = table[team.name];
+    const teamStats = table[team.name];
+    
+    const teamPosition = standingsArray.findIndex(function (standing) {
+        return standing.name === team.name;
+    }) + 1;
 
   const teamGames = [];
 
@@ -277,13 +338,39 @@ teams.forEach(function (team) {
     });
   });
 
+  const finishedMatches = teamGames.filter(function (game) {
+    return game.status === "finished";
+  });
+    
+    const upcomingMatches = teamGames.filter(function (game) {
+        return game.status !== "finished";
+    });
+
   teamCard.innerHTML = `
-        <h3>${team.name}</h3>
+    <button class="team-header" type="button">
+        <div>
+            <h3>${team.name}</h3>
+
+            <p>
+                Posición: ${teamPosition}
+            </p>
+
+            <p>
+                Victorias: ${teamStats.wins}
+                |
+                Derrotas: ${teamStats.losses}
+            </p>
+        </div>
+
+        <span class="team-toggle">▼</span>
+    </button>
+
+    <div class="team-details">
 
         <p>
-            Victorias: ${teamStats.wins}
+            Partidos jugados: ${finishedMatches.length}
             |
-            Derrotas: ${teamStats.losses}
+            Partidos pendientes: ${upcomingMatches.length}
         </p>
 
         <p>
@@ -292,13 +379,36 @@ teams.forEach(function (team) {
             Sets EN: ${teamStats.setsAgainst}
         </p>
 
-        <h4>Partidos</h4>
-    `;
+        <h4>
+            Partidos
+        </h4>
 
-  teamGames.forEach(function (game) {
+    </div>
+`;
+    const teamHeader = teamCard.querySelector(".team-header");
+    const teamToggle = teamCard.querySelector(".team-toggle");
+
+    teamHeader.addEventListener("click", function () {
+      teamCard.classList.toggle("expanded");
+
+      if (teamCard.classList.contains("expanded")) {
+        teamToggle.textContent = "▲";
+      } else {
+        teamToggle.textContent = "▼";
+      }
+    });
+
+    teamGames.forEach(function (game) {
+      
     const statusClass = game.status || "scheduled";
+        const matchElement = document.createElement("div");
+        let opponent;
 
-    const matchElement = document.createElement("div");
+        if (game.team1 === team.name) {
+            opponent = game.team2;
+        } else {
+            opponent = game.team1;  
+        }
 
     matchElement.classList.add("match-card");
 
@@ -312,31 +422,62 @@ teams.forEach(function (team) {
         </span>
     `;
 
-    if (game.status === "finished") {
+        if (game.status !== "finished") {
+          matchElement.innerHTML += `
+        <p>
+            Próximo rival: ${opponent}
+        </p>
+    `;
+        }
 
-        const result = calculateSets(game.results);
+   if (game.status === "finished") {
+     const result = calculateSets(game.results);
 
-        matchElement.innerHTML += `
-            <p>
-                Resultado: ${result.team1Sets} - ${result.team2Sets}
-            </p>
+     let teamResult;
 
-            <div class="set-scores">
+     if (game.team1 === team.name) {
+       if (result.team1Sets > result.team2Sets) {
+         teamResult = "Victoria";
+       } else {
+         teamResult = "Derrota";
+       }
+     } else {
+       if (result.team2Sets > result.team1Sets) {
+         teamResult = "Victoria";
+       } else {
+         teamResult = "Derrota";
+       }
+     }
 
-                ${game.results.sets.map(function(set, index) {
-                    return `
-                        <p>
-                            Set ${index + 1}: 
-                            ${set.team1Points} - ${set.team2Points}
-                        </p>
-                    `;
-                }).join("")}
+     matchElement.innerHTML += `
+        <p>
+            ${teamResult}
+        </p>
 
-            </div>
-        `;
-    }
+        <p>
+            Resultado: ${result.team1Sets} - ${result.team2Sets}
+        </p>
 
-    teamCard.appendChild(matchElement);
+        <div class="set-scores">
+
+            ${game.results.sets
+              .map(function (set, index) {
+                return `
+                    <p>
+                        Set ${index + 1}: 
+                        ${set.team1Points} - ${set.team2Points}
+                    </p>
+                `;
+              })
+              .join("")}
+
+        </div>
+    `;
+   }
+
+    const teamDetails = teamCard.querySelector(".team-details");
+
+    teamDetails.appendChild(matchElement);
 
   });
 
@@ -348,6 +489,7 @@ teams.forEach(function (team) {
 
 const upcomingMatches = document.getElementById("upcoming-matches");
 upcomingMatches.innerHTML = "";
+
 jornadas.forEach(function (jornada) { 
 
     const jornadaElement = document.createElement("div");
