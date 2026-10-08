@@ -4,35 +4,41 @@ const teams = [
         wins: 0,
         losses: 0,
         setsFor: 0,
-        setsAgainst: 0
+        setsAgainst: 0,
+        logo: "media/los_abusadores.JPG"
+
     },
     {
         name: "Los Lobos",
         wins: 0,
         losses: 0,
         setsFor: 0,
-        setsAgainst: 0
+        setsAgainst: 0,
+        logo: "media/los_lobos.JPG"
     },
     {
         name: "Los Defensores",
         wins: 0,
         losses: 0,
         setsFor: 0,
-        setsAgainst: 0
+        setsAgainst: 0,
+        logo: "media/polea.JPG"
     },
     {
         name: "La Furia Roja",
         wins: 0,
         losses: 0,
         setsFor: 0,
-        setsAgainst: 0
+        setsAgainst: 0,
+        logo: "media/la_furia_roja.JPG"
     },
     {
         name: "La Ofensiva Aplastante",
         wins: 0,
         losses: 0,
         setsFor: 0,
-        setsAgainst: 0
+        setsAgainst: 0,
+        logo: "media/la_ofensiva_aplastante.JPG"
     },
 
 ];
@@ -349,7 +355,10 @@ teams.forEach(function (team) {
   teamCard.innerHTML = `
     <button class="team-header" type="button">
         <div>
-            <h3>${team.name}</h3>
+            <div class="team-title">
+    <img src="${team.logo}" alt="${team.name}">
+    <h3>${team.name}</h3>
+</div>
 
             <p>
                 Posición: ${teamPosition}
