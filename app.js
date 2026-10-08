@@ -526,23 +526,19 @@ jornadas.forEach(function (jornada) {
 
             const result = calculateSets(game.results);
 
-            matchElement.innerHTML += `
-                <p>
-                    Resultado: ${result.team1Sets} - ${result.team2Sets}
-                </p>
+            matchElement.innerHTML = `
+    <p class="match-time">${game.time}</p>
 
-                <div class= "set-scores">
-                    ${game.results.sets.map((set, index) => `
-                        <p>
-                            Set ${index + 1}: 
-                            ${set.team1Points} - ${set.team2Points}  
-                        </p>
+    <h4>
+        ${game.team1}
+        <span>vs</span>
+        ${game.team2}
+    </h4>
 
-                    `).join("")}
-                
-                </div>
-            
-            `;
+    <span class="game-status ${statusClass}">
+        ${getStatusText(game.status)}
+    </span>
+`;
         }
 
         jornadaElement.appendChild(matchElement);

@@ -22,17 +22,23 @@ header h1 {
 
 nav {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     overflow-x: auto;
-    padding-bottom: 4px;
+    padding: 4px 0;
 }
 
 nav a {
     text-decoration: none;
-    color: #333;
+    color: #555;
     font-weight: bold;
-    padding: 8px 10px;
+    padding: 10px 12px;
     white-space: nowrap;
+    border-radius: 8px;
+}
+
+nav a:hover {
+    background: #f0f0f0;
+    color: #222;
 }
 
 main{
@@ -42,11 +48,29 @@ main{
     padding: 16px;
 }
 
-.hero{
-    background: white;
-    padding: 30px;
+.hero {
+    background: #222;
+    color: white;
+    padding: 32px 20px;
+    margin-bottom: 16px;
     border-radius: 12px;
-    margin-bottom: 20px;
+    text-align: center;
+}
+
+.hero h2 {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+}
+
+.hero p {
+    margin: 0;
+    font-size: 16px;
+    opacity: 0.85;
+}
+
+.hero-ball {
+    font-size: 42px;
+    margin-bottom: 8px;
 }
 
 section {
