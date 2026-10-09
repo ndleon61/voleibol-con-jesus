@@ -1,78 +1,307 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voli conociendo a Jesus</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-        <header>
-            <h1>Voli conociendo a Jesus</h1>
-
-            <nav>
-                <a href="#inicio">Inicio</a>
-                <a href="#calendario">Calendario</a>
-                <a href="#resultados">Resultados</a>
-                <a href="#tabla">Tabla</a>
-            </nav>
-        </header>
-
-        <main>
-            <section class="hero" id="inicio">
-                <div class="hero-ball">🏐</div>
-                <h2>Bienvenido a Voli conociendo a Jesus</h2>
-                <p>Partidos, resultados y tabla de posiciones.</p>
-            </section>
-
-            <section>
-                <h2>Equipos</h2>
-                <div id="teams"></div>
-            </section>
-
-            <section>
-                <h2 id="calendario">Próximos Partidos</h2>
-
-                <div id="upcoming-matches">
-                    <p>No hay registrados</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Partidos, resultados, clasificación y equipos de la liga Voli Conociendo a Jesús."
+    />
+    <meta name="theme-color" content="#0B1730" />
+    <title>Voli Conociendo a Jesús | Liga de voleibol</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#inicio">Saltar al contenido</a>
+    <header class="site-header">
+      <div class="container masthead">
+        <a
+          class="league-brand"
+          href="#inicio"
+          aria-label="Voli Conociendo a Jesús, inicio"
+        >
+          <!-- Lucide volleyball icon; ISC license in licenses/lucide-icons.txt. -->
+          <svg class="brand-mark" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 7a16 16 20 0 1 10.98 4.362" />
+            <path d="M12 12a13 13 0 0 1-8.66 5" />
+            <path d="M16.83 13.634a16 16 0 0 1-9.267 7.328" />
+            <path d="M20.66 17A13 13 0 0 0 12 12a13 13 0 0 1 0-10" />
+            <path d="M8.17 15.366a16 16 0 0 1-1.713-11.69" />
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+          <span>VOLI<small>CONOCIENDO A JESÚS</small></span>
+        </a>
+        <nav id="main-nav" aria-label="Navegación principal">
+          <a href="#inicio">Inicio</a><a href="#partidos">Partidos</a
+          ><a href="#clasificacion">Clasificación</a
+          ><a href="#equipos">Equipos</a><a href="#historial">Historial</a>
+        </nav>
+      </div>
+    </header>
+    <main id="inicio" tabindex="-1">
+      <section class="tournament-band" aria-labelledby="tournament-name">
+        <div class="container">
+          <p class="hero-context" id="season-context">Temporada actual</p>
+          <p class="hero-slogan">La pasión se vive en la cancha.</p>
+          <div class="competition-meta">
+            <p id="season-name">Liga de voleibol</p>
+            <span class="competition-status" id="tournament-status"
+              >Cargando</span
+            >
+          </div>
+          <div class="tournament-heading">
+            <div>
+              <h1 id="tournament-name">Voli Conociendo a Jesús</h1>
+              <p id="tournament-dates"></p>
+            </div>
+            <a class="change-tournament" href="#historial"
+              >Cambiar torneo <span aria-hidden="true">↗</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="featured-match container" aria-labelledby="featured-heading">
+            <div class="featured-label">
+              <h2 id="featured-heading">Próximo partido</h2>
+              <span>Hora de Cuba</span>
+            </div>
+            <div id="featured-match">
+              <p class="featured-empty">Cargando el próximo partido…</p>
+            </div>
+            <a class="calendar-link" href="#partidos">Ver calendario completo <span aria-hidden="true">→</span></a>
+      </section>
+      <div class="container data-toolbar">
+        <p id="data-status" role="status" aria-live="polite">
+          Cargando los datos del torneo…
+        </p>
+        <button
+          id="refresh-data"
+          class="icon-button"
+          type="button"
+          aria-label="Actualizar datos"
+          title="Actualizar datos"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path d="M20 7v5h-5M4 17v-5h5" />
+            <path d="M6 7a7 7 0 0 1 12-2l2 3M4 16l2 3a7 7 0 0 0 12-2" />
+          </svg>
+        </button>
+      </div>
+      <div class="container error-notice" id="error-notice" hidden>
+        <p id="error-message" role="alert"></p>
+        <button id="retry-data" type="button" class="primary-button">
+          Reintentar
+        </button>
+      </div>
+      <div id="league-content" aria-busy="true">
+        <div class="container league-grid">
+          <div class="match-column">
+            <section
+              class="content-section"
+              id="partidos"
+              aria-labelledby="matches-heading"
+              tabindex="-1"
+            >
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Calendario</p>
+                  <h2 id="matches-heading">Partidos pendientes</h2>
                 </div>
+                <span id="match-count" class="section-count"></span>
+              </div>
+              <div class="match-list" id="upcoming-matches">
+                <p class="empty-state loading-placeholder">
+                  Cargando partidos…
+                </p>
+              </div>
+              <button
+                class="more-button"
+                id="more-matches"
+                type="button"
+                hidden
+              >
+                Ver más partidos
+              </button>
             </section>
-
-            <section>
-                <h2 id="resultados">Resultados</h2>
-                <div id="results"></div>
-            </section>
-
-            <section>
-                <h2 id="tabla">Tabla de posiciones</h2>
-
-                <div class="table-container">
-                    <table>
-                    <thead>
-                        <tr>
-                            <th>Pos</th>
-                            <th>Equipo</th>
-                            <th>Victorias</th>
-                            <th>Derrotas</th>
-                            <th>Sets AF</th>
-                            <th>Sets EN</th>
-                        </tr>
-                    </thead>
-                    <tbody id="standings">
-                    </tbody>
-                </table>
+            <section
+              class="content-section"
+              id="resultados"
+              aria-labelledby="results-heading"
+            >
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">En la cancha</p>
+                  <h2 id="results-heading">Últimos resultados</h2>
                 </div>
-                
-                
+                <span id="result-count" class="section-count"></span>
+              </div>
+              <div class="match-list" id="results">
+                <p class="empty-state loading-placeholder">
+                  Cargando resultados…
+                </p>
+              </div>
+              <button
+                class="more-button"
+                id="more-results"
+                type="button"
+                hidden
+              >
+                Ver más resultados
+              </button>
             </section>
-
-        </main>
-
-
-        <footer>
-            <p>&copy; 2026 Voli conociendo a Jesus. Todos los derechos reservados.</p>
-        </footer>
-
-        <script src="app.js"></script>
-</body>
+          </div>
+          <section
+            class="content-section standings-section"
+            id="clasificacion"
+            aria-labelledby="standings-heading"
+            tabindex="-1"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Posiciones del torneo</p>
+                <h2 id="standings-heading">Clasificación</h2>
+              </div>
+            </div>
+            <div class="table-container">
+              <table>
+                <caption class="sr-only">
+                  Clasificación del torneo seleccionado, ordenada por la liga
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col"><abbr title="Posición">Pos.</abbr></th>
+                    <th scope="col">Equipo</th>
+                    <th scope="col"><abbr title="Victorias">V</abbr></th>
+                    <th scope="col" class="stat-detail">
+                      <abbr title="Derrotas">D</abbr>
+                    </th>
+                    <th scope="col" class="stat-detail">
+                      <abbr title="Sets a favor">SF</abbr>
+                    </th>
+                    <th scope="col" class="stat-detail">
+                      <abbr title="Sets en contra">SC</abbr>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="standings">
+                  <tr>
+                    <td colspan="6">Cargando clasificación…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="standings-footer">
+              <span>V: victorias</span
+              ><button
+                id="standings-details"
+                class="text-button"
+                type="button"
+                aria-expanded="false"
+                aria-controls="standings"
+              >
+                Ver estadísticas
+              </button>
+            </div>
+          </section>
+        </div>
+        <section
+          class="teams-band"
+          id="equipos"
+          aria-labelledby="teams-heading"
+          tabindex="-1"
+        >
+          <div class="container">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">La liga, sus equipos</p>
+                <h2 id="teams-heading">En esta competición</h2>
+              </div>
+              <span id="team-count" class="section-count"></span>
+            </div>
+            <div id="teams" class="team-grid">
+              <p class="empty-state">Cargando equipos…</p>
+            </div>
+          </div>
+        </section>
+      </div>
+      <section
+        class="history-section container"
+        id="historial"
+        aria-labelledby="history-heading"
+        tabindex="-1"
+      >
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Temporadas y torneos</p>
+            <h2 id="history-heading">Historial de la liga</h2>
+          </div>
+        </div>
+        <div class="history-controls">
+          <div class="select-field">
+            <label for="season-select">Temporada</label
+            ><select id="season-select" disabled>
+              <option value="">Cargando temporadas…</option>
+            </select>
+          </div>
+          <div class="select-field">
+            <label for="tournament-select">Torneo</label
+            ><select id="tournament-select" disabled>
+              <option value="">Cargando torneos…</option>
+            </select>
+          </div>
+          <button
+            id="current-tournament"
+            class="more-button"
+            type="button"
+            disabled
+          >
+            Volver al torneo actual
+          </button>
+        </div>
+        <p id="history-status" role="status" aria-live="polite"></p>
+        <div id="history-list" class="history-list"></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <p class="footer-brand">Voli Conociendo a Jesús</p>
+        <p>Liga de voleibol · Cuba</p>
+        <a href="#inicio">Volver al inicio ↑</a>
+      </div>
+    </footer>
+    <!-- Lucide navigation icons; ISC license in licenses/lucide-icons.txt. -->
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Navegación móvil">
+      <a href="#inicio" aria-current="location">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span>Inicio</span>
+      </a>
+      <a href="#partidos">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v3M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg>
+        <span>Partidos</span>
+      </a>
+      <a href="#clasificacion" aria-label="Tabla de clasificación">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/></svg>
+        <span>Tabla</span>
+      </a>
+      <a href="#equipos">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+        <span>Equipos</span>
+      </a>
+    </nav>
+    <noscript
+      ><p class="container empty-state">
+        Activa JavaScript para consultar los partidos, resultados y equipos de
+        la liga.
+      </p></noscript
+    >
+  </body>
 </html>

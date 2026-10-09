@@ -125,6 +125,7 @@ def install_competitions(app, connect, validate_sets):
         return jsonify([competition_json(row) for row in rows])
 
     app.add_url_rule("/api/admin/seasons", "list_seasons", list_seasons)
+    app.add_url_rule("/api/seasons", "list_public_seasons", list_seasons)
 
     def list_tournaments(season_id=None):
         limit,offset = catalog_page()

@@ -52,6 +52,24 @@ class AppTests(unittest.TestCase):
         self.assertEqual(response.json[0]['wins'], 1)
         self.assertEqual(response.json[0]['setsWon'], 3)
 
+    def test_public_season_catalog_is_read_only_and_contains_no_admin_fields(self):
+        connection = MagicMock()
+        connection.__enter__.return_value.execute.return_value.fetchall.return_value = [
+            (1, 'Temporada original', None, None, 'active'),
+        ]
+        client = backend.app.test_client()
+        with patch.object(backend, 'get_db_connection', return_value=connection):
+            response = client.get('/api/seasons?limit=10&offset=0')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, [dict(id=1, name='Temporada original',
+                                            startDate=None, endDate=None, status='active')])
+        query, params = connection.__enter__.return_value.execute.call_args.args
+        self.assertIn('LIMIT %s OFFSET %s', query)
+        self.assertEqual(params, (10, 0))
+        self.assertEqual(client.get('/api/admin/seasons').status_code, 401)
+        self.assertEqual(client.post('/api/seasons', json={}).status_code, 401)
+        self.assertEqual(client.get('/api/seasons?limit=9999').status_code, 400)
+
 
 if __name__ == '__main__':
     unittest.main()

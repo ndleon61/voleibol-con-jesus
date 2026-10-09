@@ -612,6 +612,141 @@ y restaurar una copia en el entorno de destino. No se añadió MFA; acceso
 administrativo debe usar contraseñas únicas y puede restringirse por VPN o proxy.
 Los límites de aplicación no sustituyen protección de tráfico en el proxy.
 
+## Sitio público móvil (fase 9A)
+
+El sitio público conserva Flask, HTML, CSS y JavaScript nativos. El encabezado
+identifica la liga; la navegación móvil queda fija abajo, sin un menú hamburguesa
+redundante. Incluye torneo y temporada, próximo encuentro con fecha
+confirmada, partidos pendientes, resultados con sets desplegables, clasificación,
+equipos y selección de temporadas/torneos. Todos los textos son españoles.
+Las fechas y la hora de consulta usan `America/Havana`.
+
+La clasificación respeta directamente el orden y los valores del backend.
+La API no define puntos de clasificación: se muestran **victorias**, sin
+introducir un sistema de puntos. Se conserva la validación existente de sets
+solo para presentar marcadores válidos; no se recalculan posiciones.
+Los partidos originales sin fecha siguen visibles con «Fecha por confirmar»;
+no se les inventa una fecha ni se destacan como futuros encuentros confirmados.
+Las competiciones cerradas no anuncian partidos futuros, incluso si conservan
+alguna programación pendiente en su historial.
+
+La única extensión de backend es `GET /api/seasons`, alias de solo lectura del
+catálogo de temporadas existente. Usa la misma paginación parametrizada
+(`limit` máximo 500, `offset`), y solo expone identificador, nombre, fechas y
+estado. No publica cuentas ni datos administrativos. Las rutas de escritura,
+autenticación, CSRF, cabeceras y esquema PostgreSQL no cambian.
+
+La carga normal hace dos consultas de catálogo y tres consultas para el torneo
+seleccionado, todas públicas. Los catálogos grandes se recorren por páginas.
+La selección de otro torneo consulta sus rutas explícitas de equipos, jornadas
+y clasificación. Las respuestas históricas conservan nombres y logotipos
+congelados, sin cruzarlos con el catálogo actual. Una caché en memoria de hasta
+cinco torneos reutiliza datos abiertos durante 60 segundos y datos cerrados
+durante la visita. La fecha/hora de consulta y la indicación de consulta anterior
+son visibles; Actualizar y Reintentar fuerzan nuevas consultas. No hay caché
+persistente de resultados, tokens en almacenamiento local ni solicitudes
+administrativas desde el sitio público. Las solicitudes caducan a los 45 segundos.
+
+No se añadió Bootstrap, Font Awesome, jQuery, fuentes descargables ni CDNs:
+CSS propio y fuentes del sistema resultan suficientes. Los iconos SVG
+pequeños están incluidos en el HTML. No hay scripts, estilos ni manejadores de
+eventos en línea. Las imágenes reservan espacio, usan carga diferida fuera del
+encuentro destacado y dejan iniciales legibles si faltan o fallan.
+
+Los cinco archivos `media/preview-*.webp` son copias de 128 px de los logotipos
+originales; no sustituyen originales, archivos subidos ni instantáneas históricas.
+Para regenerarlos usando Pillow, ya incluido en los requisitos:
+
+```sh
+.venv/bin/python scripts/optimize-public-logos.py
+```
+
+El ajuste visual posterior usa tarjetas con radio de 16 px y navegación móvil
+inferior fija con radio de 20 px: Inicio, Partidos, Tabla y Equipos. Se reserva
+espacio inferior, incluida el área segura del dispositivo, para que el último
+control no quede tapado. Historial sigue disponible mediante «Cambiar torneo»; en
+escritorio se conserva la navegación superior. La pestaña seleccionada usa
+`aria-current` y sigue los cambios de ancla, incluido Atrás/Adelante.
+El hero conserva el fondo azul oscuro y los bordes redondeados de la referencia,
+con VOLI, el icono de voleibol y «La pasión se vive en la cancha». Mantiene los
+datos reales del torneo; el próximo partido queda separado en blanco, con
+acceso al calendario. Al seleccionar una competición anterior, la etiqueta
+cambia a «Historial de temporadas».
+Los cuatro SVG de navegación son Lucide (house, calendar-days, trophy, shield),
+revisión `a04f228cd01185e09c188b7227b9600c08c565ec`, licencia ISC incluida en
+`licenses/lucide-icons.txt`. Están incrustados localmente: 1438 bytes de SVG,
+464 bytes gzip medidos juntos, incluidos en el peso HTML y sin solicitudes extra.
+El icono volleyball de la marca procede de la misma revisión y licencia.
+
+Mediciones actualizadas del 9 de octubre de 2026, con los datos reales de la liga:
+
+| Recurso | Bytes sin comprimir | Bytes gzip, nivel 9 |
+| --- | ---: | ---: |
+| HTML | 12452 | 3125 |
+| CSS | 16357 | 3760 |
+| JavaScript | 20574 | 6220 |
+| Imágenes inicialmente solicitadas | 21276 | WebP ya comprimido |
+| Fuentes/iconos externos | 0 | 0 |
+
+HTML + CSS comprimidos: 6885 bytes, por debajo del objetivo de 70 KB.
+JavaScript comprimido: 6220 bytes, por debajo de 50 KB. Las imágenes y fuentes
+también cumplen los objetivos de 100 KB y 25 KB para los datos actuales.
+Estas cifras gzip se midieron sobre los archivos, no sobre respuestas comprimidas:
+el servidor Flask de desarrollo envía `Content-Encoding: identity`.
+La transferencia real medida fue de 81606 bytes, incluidas cabeceras,
+API e imágenes, en 13 solicitudes iniciales. Los archivos estáticos mantienen
+ETag/revalidación (`Cache-Control: no-cache`); los logotipos subidos conservan
+su caché inmutable existente. En producción, habilita compresión en el proxy
+HTTPS y vuelve a medir sin cambiar las protecciones de páginas privadas.
+
+Prueba Slow 3G: tres visitas independientes con caché desactivada, viewport
+390 × 844, CDP de Chromium, 400 ms de latencia, 400 kbit/s de descarga/subida
+y CPU ralentizada cuatro veces. Datos utilizables en 2636–2640 ms; primer
+contenido visible en 1584–1600 ms; desplazamiento de diseño acumulado (CLS)
+0,00017. No es una medición de una red cubana real ni de un teléfono físico.
+Logotipos históricos o futuras imágenes subidas pueden aumentar la transferencia:
+no se alteran automáticamente los archivos históricos para cumplir un presupuesto.
+
+Verificación visual y funcional en Chromium y WebKit: 320, 360, 375, 390, 430,
+768, 1024 y 1440 px, sin desbordamiento horizontal, incluidas estadísticas
+desplegadas y nombres largos. Se probaron navegación, teclado, selección,
+instantáneas, ausencia/fallo de logotipos, datos vacíos, error HTTP 503 y reintento.
+WebKit 27.2 emite dos avisos de CSP al construir los selectores nativos, reproducidos
+en un documento mínimo sin JavaScript ni CSS del sitio; funcionan correctamente.
+Playwright genera otro aviso al inyectar su estilo de sincronización de capturas.
+La prueba registra estos avisos por separado; no se relajó `style-src 'self'`.
+Queda pendiente probar Safari/Chrome en teléfonos físicos, versiones antiguas
+y conexiones cubanas reales. JavaScript es necesario para consultar las APIs;
+sin él se conserva un aviso español, pero no resultados renderizados por servidor.
+
+La comprobación opcional de navegador usa Playwright 1.64.0 (Apache-2.0), solo
+para desarrollo, con **cero bytes** añadidos al sitio. No es un requisito de
+producción. Puede instalarse fuera del repositorio para reproducirla:
+
+```sh
+npm install --prefix /tmp/voli-public-qa playwright@1.64.0
+node /tmp/voli-public-qa/node_modules/playwright/cli.js install webkit
+NODE_PATH=/tmp/voli-public-qa/node_modules PUBLIC_QA_URL=http://127.0.0.1:3002 node tests/public-browser.cjs
+```
+
+El script usa Chrome instalado en macOS; `CHROME_PATH` permite indicar otro
+ejecutable. `PUBLIC_QA_OUTPUT` cambia la carpeta de capturas/informe, por defecto
+`/private/tmp/voli-phase9a-qa`. Nunca guarda capturas en el repositorio ni modifica
+la base de datos: los escenarios históricos simulados interceptan únicamente
+GETs en el navegador. Para revisar localmente, sigue la configuración inicial
+de este README y ejecuta con tus variables de entorno:
+
+```sh
+PORT=3002 .venv/bin/python server-flask/app.py
+```
+
+Abre `http://127.0.0.1:3002`. No se necesita migración para esta fase. Las suites
+de la fase 9A pasaron: 109 pruebas Python. Tras el ajuste visual pasan las 27
+pruebas JavaScript y las comprobaciones de navegador; no cambió código Python.
+Los recuentos y huellas de
+equipos, jornadas, partidos, sets, temporadas, torneos e inscripciones antes y
+después de las pruebas coinciden. El panel de administración no se rediseñó.
+
 ## Pruebas
 
 ```sh
