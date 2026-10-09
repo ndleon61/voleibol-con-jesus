@@ -187,6 +187,14 @@ requieren sesión consistente. Mantenimiento también usa endpoint directo.
 
 Railway termina TLS. El middleware usa X-Real-IP/X-Forwarded-Proto, no
 X-Forwarded-For del cliente; comprobar que el edge sobrescribe esas cabeceras.
+La presencia conjunta de RAILWAY_ENVIRONMENT_ID y RAILWAY_SERVICE_ID activa
+los defaults STAGING=1, PROXY_MODE=railway y TRUST_PROXY=1; la decisión se toma
+solo con variables del proceso, nunca con cabeceras del cliente. Mantener esos
+tres valores explícitos en el servicio. Overrides incompatibles se rechazan
+al arrancar, sin desactivar HTTPS. Fuera de Railway, TRUST_PROXY sigue siendo 0
+por defecto. ProxyFix confía únicamente en el último valor (un hop) de
+X-Forwarded-Proto; no acepta X-Forwarded-Host/Port/Prefix. Gunicorn no interpreta
+cabeceras forwarded por su cuenta, para evitar una segunda capa de confianza.
 No exponer Gunicorn directamente. El probe HTTP interno solo admite GET/HEAD
 de `/healthz` con host `healthcheck.railway.app`; las demás rutas exigen HTTPS.
 Healthcheck consulta esquema y montaje escribible sin revelar diagnósticos.

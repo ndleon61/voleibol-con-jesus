@@ -21,6 +21,14 @@ class RailwayProxy:
         return self.app(environ, start_response)
 
 
+def configure_proxy(wsgi_app, config):
+    if not config["TRUST_PROXY"]:
+        return wsgi_app
+    if config["PROXY_MODE"] == "railway":
+        return RailwayProxy(wsgi_app)
+    return ProxyFix(wsgi_app, x_for=1, x_proto=1, x_host=0)
+
+
 def readiness(app, connect):
     try:
         directory = Path(app.config["TEAM_LOGO_DIRECTORY"])

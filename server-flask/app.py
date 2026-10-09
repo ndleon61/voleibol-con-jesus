@@ -3,7 +3,6 @@ from pathlib import Path
 import os
 from flask import Flask, jsonify, request, send_from_directory, render_template
 from werkzeug.exceptions import HTTPException
-from werkzeug.middleware.proxy_fix import ProxyFix
 import psycopg
 from auth import csrf_token, install_auth
 from teams import install_teams
@@ -11,7 +10,7 @@ from scheduling import HAVANA, schedule_fields, install_scheduling
 from competitions import install_competitions, requested_tournament, management_tournament, require_open, integrity_message
 from configuration import settings
 from reliability import checked_rows
-from deployment import RailwayProxy, install_deployment, readiness
+from deployment import configure_proxy, install_deployment, readiness
 from initialization import install_initialization
 
 
@@ -19,9 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 app = Flask(__name__, template_folder=str(PROJECT_ROOT), static_folder=None)
 app.config.update(settings())
 production = app.config["PRODUCTION"]
-if os.environ.get("TRUST_PROXY") == "1":
-    app.wsgi_app = (RailwayProxy(app.wsgi_app) if app.config["PROXY_MODE"] == "railway"
-                    else ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0))
+app.wsgi_app = configure_proxy(app.wsgi_app, app.config)
 
 
 @app.route("/")

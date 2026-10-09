@@ -13,15 +13,21 @@ def settings(environ=None):
     if environment not in {"development", "production"}:
         raise RuntimeError("APP_ENV debe ser development o production.")
     production = environment == "production"
-    if env.get("STAGING", "0") not in {"0", "1"}:
+    # Platform variables are server-side configuration, never request headers.
+    railway = bool(env.get("RAILWAY_ENVIRONMENT_ID") and env.get("RAILWAY_SERVICE_ID"))
+    staging_value = env.get("STAGING", "1" if railway else "0")
+    trust_proxy = env.get("TRUST_PROXY", "1" if railway else "0")
+    if staging_value not in {"0", "1"}:
         raise RuntimeError("STAGING debe ser 0 o 1.")
-    staging = env.get("STAGING") == "1"
+    staging = staging_value == "1"
     if staging and not production:
         raise RuntimeError("Staging requiere APP_ENV=production.")
-    proxy_mode = env.get("PROXY_MODE", "standard")
+    proxy_mode = env.get("PROXY_MODE", "railway" if railway else "standard")
     if proxy_mode not in {"standard", "railway"}:
         raise RuntimeError("PROXY_MODE debe ser standard o railway.")
-    if proxy_mode == "railway" and (not staging or env.get("TRUST_PROXY") != "1"):
+    if railway and proxy_mode != "railway":
+        raise RuntimeError("Railway requiere PROXY_MODE=railway.")
+    if proxy_mode == "railway" and (not staging or trust_proxy != "1"):
         raise RuntimeError("El proxy Railway requiere STAGING=1 y TRUST_PROXY=1.")
     if staging:
         try:
@@ -40,7 +46,7 @@ def settings(environ=None):
     label = r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
     if any(len(host.lstrip(".")) > 253 or not re.fullmatch(r"\.?" + label + r"(?:\." + label + r")*",host) for host in hosts):
         raise RuntimeError("TRUSTED_HOSTS debe contener nombres de host sin esquema, puerto ni comodines.")
-    if env.get("TRUST_PROXY", "0") not in {"0", "1"}:
+    if trust_proxy not in {"0", "1"}:
         raise RuntimeError("TRUST_PROXY debe ser 0 o 1.")
     if production and (not env.get("DATABASE_URL", "").strip() or not hosts):
         raise RuntimeError("En producción debes configurar DATABASE_URL y TRUSTED_HOSTS.")
@@ -48,6 +54,7 @@ def settings(environ=None):
         raise RuntimeError("La depuración no está permitida en producción.")
     return dict(
         SECRET_KEY=secret, PRODUCTION=production, STAGING=staging, PROXY_MODE=proxy_mode,
+        TRUST_PROXY=trust_proxy == "1",
         SESSION_COOKIE_NAME="__Host-voli_session" if production else "voli_session",
         SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SECURE=production,
         SESSION_COOKIE_SAMESITE="Lax", ADMIN_SESSION_LIFETIME=timedelta(hours=2),

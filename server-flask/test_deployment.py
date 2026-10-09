@@ -14,7 +14,7 @@ os.environ.setdefault("FLASK_SECRET_KEY", secrets.token_hex(32))
 import app as backend
 from backup import restore_empty, restore_media, verify_bundle, verify_media
 from configuration import settings
-from deployment import RailwayProxy
+from deployment import RailwayProxy, configure_proxy
 
 
 class StagingTests(unittest.TestCase):
@@ -50,6 +50,55 @@ class StagingTests(unittest.TestCase):
         self.assertEqual(rules[0], "*")
         self.assertFalse(any(rule.startswith("!") and (".env" in rule or "instance" in rule or ".git" in rule)
                              for rule in rules))
+
+    def test_railway_runtime_defaults_and_explicit_insecure_overrides(self):
+        base = self.config(RAILWAY_ENVIRONMENT_ID="test-environment", RAILWAY_SERVICE_ID="test-service")
+        del base["STAGING"]
+        configured = settings(base)
+        self.assertTrue(configured["TRUST_PROXY"])
+        self.assertTrue(configured["STAGING"])
+        self.assertEqual(configured["PROXY_MODE"], "railway")
+        for changes in ({"TRUST_PROXY": "0"}, {"PROXY_MODE": "standard"}, {"STAGING": "0"}):
+            with self.subTest(changes=changes), self.assertRaises(RuntimeError):
+                settings({**base, **changes})
+        for marker in ("RAILWAY_ENVIRONMENT_ID", "RAILWAY_SERVICE_ID"):
+            local = self.config(**{marker: "test"})
+            self.assertFalse(settings(local)["TRUST_PROXY"])
+
+    def test_proxied_https_reaches_routes_without_bypassing_authorization(self):
+        config = settings(self.config(RAILWAY_ENVIRONMENT_ID="test-environment", RAILWAY_SERVICE_ID="test-service"))
+        with patch.dict(backend.app.config, config), patch.object(backend.app, "wsgi_app",
+                configure_proxy(backend.app.wsgi_app, config)), patch("deployment.readiness") as probe:
+            probe.return_value = ({"estado": "disponible"}, 200)
+            client = backend.app.test_client()
+            headers = {"X-Forwarded-Proto": "https", "X-Real-IP": "203.0.113.2"}
+            for path, status in (("/", 200), ("/healthz", 200), ("/api/admin/stats", 401), ("/admin.html", 303)):
+                response = client.get(path, base_url="http://staging.example", headers=headers)
+                self.assertEqual(response.status_code, status, response.text)
+                self.assertIn("noindex", response.headers["X-Robots-Tag"])
+                response.close()
+            probe.assert_called_once()
+            # The trusted edge value is the rightmost hop; client values cannot override it.
+            for proto in (None, "http", "https, http", "invalid"):
+                response = client.get("/", base_url="http://staging.example",
+                                      headers={} if proto is None else {"X-Forwarded-Proto": proto})
+                self.assertEqual(response.status_code, 400)
+            response = client.get("/", base_url="http://staging.example",
+                                  headers={"X-Forwarded-Proto": "http, https", "X-Forwarded-Host": "evil.example"})
+            self.assertEqual(response.status_code, 200)
+            response.close()
+            response = client.get("/", base_url="http://evil.example",
+                                  headers={**headers, "X-Forwarded-Host": "staging.example"})
+            self.assertEqual(response.status_code, 400)
+            self.assertTrue(backend.app.config["SESSION_COOKIE_SECURE"])
+
+    def test_forwarded_https_is_ignored_when_proxy_trust_is_disabled(self):
+        config = settings(self.config())
+        with patch.dict(backend.app.config, config), patch.object(backend.app, "wsgi_app",
+                configure_proxy(backend.app.wsgi_app, config)):
+            response = backend.app.test_client().get("/", base_url="http://staging.example",
+                                                     headers={"X-Forwarded-Proto": "https"})
+            self.assertEqual(response.status_code, 400)
 
     def test_port_binding_preserves_local_default_and_validates_port(self):
         path = Path(__file__).with_name("gunicorn.conf.py")
