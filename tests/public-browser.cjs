@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
 const { chromium, webkit } = require('playwright');
+const { budgets, waitForPublicData, navigateToUsable, assertPerformance } = require('./public-performance.cjs');
 
 const base = process.env.PUBLIC_QA_URL || 'http://127.0.0.1:3002';
 const output = process.env.PUBLIC_QA_OUTPUT || '/private/tmp/voli-phase9a-qa';
@@ -13,7 +14,7 @@ const selectLines = new Set(fs.readFileSync('index.html', 'utf8').split('\n').fl
 fs.mkdirSync(output, { recursive: true });
 
 async function ready(page) {
-  await page.waitForFunction(() => document.getElementById('league-content').getAttribute('aria-busy') === 'false' && !document.getElementById('league-content').hidden);
+  await waitForPublicData(page);
 }
 
 async function overflow(page, width, label) {
@@ -173,18 +174,81 @@ async function slow3g(browser) {
     let wireBytes = 0;
     session.on('Network.loadingFinished', event => { wireBytes += event.encodedDataLength; });
     const start = Date.now();
-    await page.goto(base); await ready(page);
-    const readyMs = Date.now() - start;
-    await page.waitForTimeout(1000);
-    const entries = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => ({ name: entry.name, bytes: entry.encodedBodySize, transfer: entry.transferSize })));
-    const images = entries.filter(entry => /\.(webp|JPG)$/.test(entry.name)).reduce((sum, entry) => sum + entry.bytes, 0);
-    const metrics = await page.evaluate(() => ({ firstContentfulPaintMs: performance.getEntriesByName('first-contentful-paint')[0]?.startTime, layoutShift: window.publicQACls }));
-    report.slow3g.push({ run, readyMs, wireBytes, initialImageBytes: images, requests: entries.length + 1, ...metrics });
-    assert.ok(images <= 100 * 1024);
-    assert.ok(metrics.layoutShift < 0.1, `Unexpected initial layout shift: ${metrics.layoutShift}`);
-    await page.screenshot({ path: path.join(output, `slow3g-${run}.png`) });
-    await context.close();
+    const requests = new Map(), lifecycle = [], errors = [];
+    session.on('Network.requestWillBeSent', event => requests.set(event.requestId, { url: event.request.url, type: event.type, startedMs: Date.now() - start }));
+    session.on('Network.responseReceived', event => Object.assign(requests.get(event.requestId) || {}, {
+      status: event.response.status, mimeType: event.response.mimeType, responseMs: Date.now() - start,
+      bodyBytes: Number(Object.entries(event.response.headers).find(([name]) => name.toLowerCase() === 'content-length')?.[1]) || 0,
+    }));
+    session.on('Network.loadingFinished', event => Object.assign(requests.get(event.requestId) || {}, { finishedMs: Date.now() - start, bytes: event.encodedDataLength }));
+    session.on('Network.loadingFailed', event => Object.assign(requests.get(event.requestId) || {}, { failedMs: Date.now() - start, error: event.errorText }));
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('domcontentloaded', () => lifecycle.push({ event: 'domcontentloaded', ms: Date.now() - start }));
+    page.on('load', () => lifecycle.push({ event: 'load', ms: Date.now() - start }));
+    let stage = 'navigation and league readiness';
+    try {
+      const readyMs = await navigateToUsable(page, base);
+      stage = 'initial resource completion';
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      let quietSince = null;
+      while (true) {
+        const pending = [...requests.values()].some(request => request.finishedMs === undefined && request.failedMs === undefined);
+        if (pending) quietSince = null;
+        else quietSince ??= Date.now();
+        if (quietSince !== null && Date.now() - quietSince >= 200) break;
+        assert.ok(Date.now() - start <= budgets.initialResourcesMs, 'Initial resources did not finish within 10 seconds');
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      const entries = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => ({ name: entry.name, bytes: entry.encodedBodySize, transfer: entry.transferSize })));
+      const images = [...requests.values()].filter(request => request.mimeType?.startsWith('image/')).reduce((sum, request) => sum + (entries.find(entry => entry.name === request.url)?.bytes || request.bodyBytes), 0);
+      const fonts = [...requests.values()].filter(request => request.type === 'Font').reduce((sum, request) => sum + (request.bytes || 0), 0);
+      const icons = [...requests.values()].filter(request => request.mimeType === 'image/svg+xml').reduce((sum, request) => sum + request.bodyBytes, 0);
+      const metrics = await page.evaluate(() => ({ firstContentfulPaintMs: performance.getEntriesByName('first-contentful-paint')[0]?.startTime, layoutShift: window.publicQACls }));
+      const measurement = { run, readyMs, wireBytes, initialImageBytes: images, initialFontBytes: fonts, initialIconBytes: icons, resourcesFinishedMs: Date.now() - start, requests: requests.size, ...metrics };
+      report.slow3g.push(measurement);
+      fs.writeFileSync(path.join(output, `slow3g-${run}-network.json`), JSON.stringify({ lifecycle, errors, requests: [...requests.values()] }, null, 2));
+      stage = 'performance assertions';
+      assert.deepEqual(errors, []);
+      assert.deepEqual([...requests.values()].filter(request => request.error || request.status >= 400), []);
+      assertPerformance(measurement, report.assets);
+      await page.screenshot({ path: path.join(output, `slow3g-${run}.png`) });
+    } catch (error) {
+      const diagnostic = { run, stage, elapsedMs: Date.now() - start, lifecycle, errors, requests: [...requests.values()] };
+      fs.writeFileSync(path.join(output, `slow3g-${run}-failure.json`), JSON.stringify(diagnostic, null, 2));
+      console.error(JSON.stringify(diagnostic, null, 2));
+      throw error;
+    } finally { await context.close(); }
   }
+}
+
+async function stalledLoadRegression(browser) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    const session = await context.newCDPSession(page);
+    await session.send('Network.enable');
+    await session.send('Network.setCacheDisabled', { cacheDisabled: true });
+    await session.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: 50000, uploadThroughput: 50000, connectionType: 'cellular3g' });
+    await session.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    let stalledRequest, loaded = false;
+    await page.route(base + '/', async route => {
+      const response = await route.fetch();
+      const html = (await response.text()).replace('</body>', '<img src="/media/qa-deliberately-stalled.webp" width="1" height="1" alt=""></body>');
+      await route.fulfill({ response, body: html });
+    });
+    await page.route('**/media/qa-deliberately-stalled.webp', route => { stalledRequest = route; });
+    page.on('load', () => { loaded = true; });
+    const readyMs = await navigateToUsable(page, base);
+    assert.ok(stalledRequest, 'The regression must actually leave an image request pending');
+    assert.equal(loaded, false, 'A nonessential image keeps the load event pending');
+    await overflow(page, 390, 'usable league with pending image');
+    assert.equal(await page.locator('#standings tr').count(), 5);
+    const oldGate = await page.waitForLoadState('load', { timeout: 1000 }).then(() => 'loaded', error => error.name);
+    assert.equal(oldGate, 'TimeoutError');
+    await stalledRequest.abort();
+    await page.waitForLoadState('load');
+    report.scenarios.push(`Pending nonessential image: league ready in ${readyMs} ms while the old load gate times out`);
+  } finally { await context.close(); }
 }
 
 (async () => {
@@ -193,9 +257,14 @@ async function slow3g(browser) {
     const response = await fetch(`${base}/${asset === 'index.html' ? '' : asset}`);
     report.assets[asset] = { bytes: data.length, gzipBytes: zlib.gzipSync(data, { level: 9 }).length, servedEncoding: response.headers.get('content-encoding') || 'identity', cacheControl: response.headers.get('cache-control') };
   }
-  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
-  try { await actualViewports(browser, 'chromium'); await scenarios(browser); await slow3g(browser); }
+  const launchOptions = { executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true };
+  const browser = await chromium.launch(launchOptions);
+  try { await actualViewports(browser, 'chromium'); await scenarios(browser); }
   finally { await browser.close(); }
+  // Keep measurements independent of routed functional scenarios and their browser state.
+  const performanceBrowser = await chromium.launch(launchOptions);
+  try { await slow3g(performanceBrowser); await stalledLoadRegression(performanceBrowser); }
+  finally { await performanceBrowser.close(); }
   let safari;
   try { safari = await webkit.launch(); }
   catch (error) { report.limitations.push('WebKit unavailable: install the optional Playwright WebKit browser to verify Safari engine compatibility.'); }
@@ -205,4 +274,7 @@ async function slow3g(browser) {
   }
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
-})().catch(error => { console.error(error); process.exitCode = 1; });
+})().catch(error => {
+  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ ...report, failure: error.message }, null, 2));
+  console.error(error); process.exitCode = 1;
+});

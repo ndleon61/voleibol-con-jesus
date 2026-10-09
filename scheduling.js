@@ -52,6 +52,7 @@
     node.type = "button";
     node.className = "secondary-button";
     node.textContent = text;
+    if (["Editar", "Eliminar"].includes(text)) decorateAdminTool(node, text);
     node.disabled = disabled || busy;
     node.addEventListener("click", () => { if (!busy) action(); });
     return node;

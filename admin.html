@@ -5,34 +5,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>Voli Conociendo a Jesus | Administración</title>
+    <meta name="theme-color" content="#0b1730">
+    <title>Voli Conociendo a Jesús | Administración</title>
+    <link rel="icon" type="image/svg+xml" href="/media/volleyball.svg">
     <link rel="stylesheet" href="admin.css">
 </head>
-<body>
+<body class="admin-screen">
+    <a class="admin-skip" href="#panel">Saltar al contenido</a>
     <div class="dashboard">
         <aside class="sidebar">
-            <h2>Voli Conociendo a Jesus</h2>
-            <p>Administración</p>
+            <a class="admin-brand" href="/" aria-label="Voli Conociendo a Jesús, sitio público">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M11 7a16 16 20 0 1 10.98 4.362M12 12a13 13 0 0 1-8.66 5M16.83 13.634a16 16 0 0 1-9.267 7.328M20.66 17A13 13 0 0 0 12 12a13 13 0 0 1 0-10M8.17 15.366a16 16 0 0 1-1.713-11.69" />
+                    <circle cx="12" cy="12" r="10" />
+                </svg>
+                <span>VOLI<small>CONOCIENDO A JESÚS</small></span>
+            </a>
+            <p>Administración de la liga</p>
 
-            <nav>
-                <a class="active" href="#panel">Panel</a>
-                <a href="#team-management">Equipos</a>
-                <a href="#competition-management">Temporadas y torneos</a>
-                <a href="#schedule-management">Jornadas</a>
-                <a href="#results">Resultados</a>
-                <a href="#result-entry">Registrar resultado</a>
+            <nav id="admin-nav" aria-label="Navegación de administración">
+                <!-- Lucide icons; attribution in licenses/lucide-icons.txt. -->
+                <a class="active" href="#panel" aria-current="location"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" /></svg><span>Panel</span></a>
+                <a href="#team-management"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-8 9-8 9s-8-4-8-9V5l8-3 8 3z" /></svg><span>Equipos</span></a>
+                <a href="#competition-management" aria-label="Temporadas y torneos"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8m-4-5v5M7 4H4v3a4 4 0 0 0 4 4m9-7h3v3a4 4 0 0 1-4 4M7 2h10v5a5 5 0 0 1-10 0z" /></svg><span>Torneos</span></a>
+                <a href="#schedule-management"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18M8 15h.01M12 15h.01M16 15h.01M8 18h.01M12 18h.01" /></svg><span>Jornadas</span></a>
+                <a href="#result-entry"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="18" rx="2" /><rect x="9" y="2" width="6" height="4" rx="1" /><path d="M9 12h6M9 16h6" /></svg><span>Resultados</span></a>
             </nav>
         </aside>
 
-        <main class="main-content" id="panel">
+        <main class="main-content" id="panel" tabindex="-1">
             <header class="page-header">
                 <div>
                     <h1>Panel de administración</h1>
-                    <p>Administración de la liga de voleibol.</p>
                 </div>
                 <form action="/logout" method="post">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit">Cerrar sesión</button>
+                    <button type="submit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 17 5-5-5-5M21 12H9M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7" /></svg>Cerrar sesión</button>
                 </form>
             </header>
 
@@ -53,9 +61,8 @@
                 </article>
             </section>
 
-            <section class="result-entry" id="result-entry">
+            <section class="result-entry" id="result-entry" tabindex="-1">
                 <h2>Registrar resultado</h2>
-                <p>Selecciona un partido e introduce los puntos de cada set.</p>
 
                 <form id="result-form" novalidate>
                     <div class="form-field match-field">
@@ -85,10 +92,10 @@
                 </form>
             </section>
 
-            <section class="team-management" id="competition-management" aria-labelledby="competitions-heading">
+            <section class="team-management" id="competition-management" aria-labelledby="competitions-heading" tabindex="-1">
                 <header class="section-header">
                     <h2 id="competitions-heading">Temporadas y torneos</h2>
-                    <button id="refresh-competitions" type="button" class="secondary-button">Actualizar</button>
+                    <button id="refresh-competitions" type="button" class="secondary-button tool-button" aria-label="Actualizar temporadas y torneos" title="Actualizar temporadas y torneos"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 3M4 16l2 3a7 7 0 0 0 12-2" /></svg></button>
                 </header>
                 <p id="competition-message" role="status" aria-live="polite"></p>
                 <div class="teams-layout">
@@ -122,10 +129,10 @@
                 <ol id="competition-standings"></ol>
             </section>
 
-            <section class="team-management" id="schedule-management" aria-labelledby="schedule-heading">
+            <section class="team-management" id="schedule-management" aria-labelledby="schedule-heading" tabindex="-1">
                 <header class="section-header">
                     <h2 id="schedule-heading">Gestión de jornadas</h2>
-                    <button id="refresh-schedule" type="button" class="secondary-button">Actualizar</button>
+                    <button id="refresh-schedule" type="button" class="secondary-button tool-button" aria-label="Actualizar jornadas" title="Actualizar jornadas"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 3M4 16l2 3a7 7 0 0 0 12-2" /></svg></button>
                 </header>
                 <p id="schedule-message" role="status" aria-live="polite">Cargando jornadas...</p>
                 <div class="schedule-layout">
@@ -183,10 +190,10 @@
                 </div>
             </section>
 
-            <section class="team-management" id="team-management" aria-labelledby="teams-heading">
+            <section class="team-management" id="team-management" aria-labelledby="teams-heading" tabindex="-1">
                 <header class="section-header">
                     <h2 id="teams-heading">Equipos</h2>
-                    <button type="button" id="refresh-teams" class="secondary-button">Actualizar</button>
+                    <button type="button" id="refresh-teams" class="secondary-button tool-button" aria-label="Actualizar equipos" title="Actualizar equipos"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 3M4 16l2 3a7 7 0 0 0 12-2" /></svg></button>
                 </header>
                 <div class="teams-layout">
                     <div>

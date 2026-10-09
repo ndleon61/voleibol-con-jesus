@@ -99,6 +99,21 @@ class AuthenticationTests(unittest.TestCase):
     def session_token(self):
         return self.client.get('/api/auth/session').json['csrf_token']
 
+    def test_login_page_preserves_accessible_form_and_spanish_notices(self):
+        page = self.client.get('/login?motivo=sesion')
+        self.assertEqual(page.status_code, 200)
+        for text in ('class="login-screen"', 'class="login-header"',
+                     'action="/login" method="post" novalidate',
+                     'autocomplete="username"', 'autocomplete="current-password"',
+                     'label for="username"', 'label for="password"',
+                     'Inicia sesión para acceder a la administración.',
+                     'Volver a la liga'):
+            self.assertIn(text, page.text)
+        self.assertRegex(page.text, r'name="csrf_token" value="[^"]+"')
+        self.assertIn('no-store', page.headers['Cache-Control'])
+        self.assertIn('Has cerrado la sesión correctamente.',
+                      self.client.get('/login?salida=1').text)
+
     def test_successful_login_rotates_session_and_csrf(self):
         token = self.login_token()
         old_cookie = self.client.get_cookie('voli_session').value
@@ -116,6 +131,8 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(dashboard.status_code, 200)
         self.assertIn('no-store', dashboard.headers['Cache-Control'])
         self.assertNotIn('{{ csrf_token }}', dashboard.text)
+        self.assertIn('class="admin-screen"', dashboard.text)
+        self.assertIn('id="admin-nav"', dashboard.text)
 
     def test_incorrect_credentials(self):
         response = self.login(password='incorrecta')

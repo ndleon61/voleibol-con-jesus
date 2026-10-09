@@ -24,6 +24,23 @@ const resultForm = document.querySelector("#result-form");
 const resultMessage = document.querySelector("#result-message");
 const saveButton = document.querySelector("#save-result");
 
+function decorateAdminTool(button, action) {
+  const paths = action === "Editar"
+    ? ["M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z", "m15 5 4 4"]
+    : ["M10 11v6M14 11v6M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"];
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  for (const [key, value] of Object.entries({ width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" })) icon.setAttribute(key, value);
+  for (const d of paths) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d); icon.append(path);
+  }
+  button.setAttribute("aria-label", button.getAttribute("aria-label") || action);
+  button.title = button.getAttribute("aria-label");
+  button.classList.add("tool-button");
+  if (action === "Eliminar") button.classList.add("delete-tool");
+  button.replaceChildren(icon);
+}
+
 let matches = [];
 
 async function loadDashboardStats() {
@@ -376,6 +393,7 @@ function renderManagedTeams() {
       button.className = "secondary-button";
       button.textContent = label;
       button.setAttribute("aria-label", `${label} ${team.name}`);
+      decorateAdminTool(button, label);
       button.disabled = teamBusy;
       button.addEventListener("click", () => handler(team));
       actions.append(button);
@@ -501,3 +519,24 @@ teamLogoInput.addEventListener("change", () => {
   if (teamLogoInput.files.length) removeTeamLogo.checked = false;
 });
 loadManagedTeams();
+
+function initAdminNavigation() {
+  const nav = document.getElementById("admin-nav");
+  const links = nav.querySelectorAll("a");
+  function select() {
+    const hash = window.location.hash || "#panel";
+    links.forEach(link => {
+      const active = link.hash === hash;
+      link.classList.toggle("active", active);
+      if (active) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+  }
+  nav.addEventListener("click", event => {
+    const link = event.target.closest("a");
+    if (link) document.getElementById(link.hash.slice(1))?.focus({ preventScroll: true });
+  });
+  window.addEventListener("hashchange", select);
+  select();
+}
+initAdminNavigation();

@@ -271,35 +271,30 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
     outline-offset: 3px;
 }
 
-.login-page {
-    max-width: 460px;
-    margin: 24px auto;
-    padding: 20px 16px;
-}
-
-.login-page h1 {
-    font-size: 26px;
-    overflow-wrap: anywhere;
-}
-
-.login-panel form {
-    display: grid;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.login-panel {
-    padding: 20px;
-}
-
-.login-panel h2 {
-    margin-top: 0;
-}
-
-.login-panel input {
-    width: 100%;
-    min-width: 0;
-}
+.login-screen { background: #f1f4f8; color: #17243b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+.login-page { width: min(100%, 460px); margin: 0 auto; padding: 20px 16px max(24px, env(safe-area-inset-bottom)); }
+.login-header { padding: 26px 24px; border-radius: 20px; background: #0b1730; color: #fff; }
+.login-brand { display: flex; align-items: center; gap: 12px; min-height: 48px; color: inherit; text-decoration: none; }
+.login-brand svg { flex-shrink: 0; }
+.login-page h1 { margin: 0; font-size: 28px; line-height: 1.2; overflow-wrap: anywhere; }
+.login-brand h1 span { display: block; margin-top: 5px; font-size: 12px; font-weight: 500; color: #c2cede; }
+.login-header > p { margin: 24px 0 0; font-size: 13px; color: #8eb9ff; }
+.login-panel { margin: 16px 0 0; padding: 24px; border: 1px solid #dce3ed; border-radius: 20px; background: #fff; box-shadow: none; }
+.login-panel h2 { margin: 0 0 24px; font-size: 24px; line-height: 1.25; }
+.login-panel form { display: grid; gap: 20px; margin-bottom: 16px; }
+.login-field { min-width: 0; }
+.login-field label { display: block; margin-bottom: 8px; color: #536176; font-size: 14px; font-weight: 650; }
+.login-panel input:not([type="hidden"]) { display: block; width: 100%; min-width: 0; height: 54px; padding: 12px 16px; border: 1px solid #b8c6d8; border-radius: 12px; background: #fff; color: #17243b; font-size: 16px; }
+.login-panel input:hover { border-color: #0755bd; }
+.login-screen :focus-visible { outline: 3px solid #1677ff; outline-offset: 3px; }
+.login-panel button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin-top: 4px; padding: 12px 16px; border: 0; border-radius: 12px; background: #1677ff; color: #fff; font-size: 16px; font-weight: 700; }
+.login-panel button:hover { background: #0755bd; }
+.login-return { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; color: #0755bd; text-decoration: none; font-size: 14px; font-weight: 600; }
+.login-return:hover { text-decoration: underline; }
+.login-panel .message-error, .login-panel .login-notice { margin: 0 0 24px; padding: 12px 14px; border-radius: 8px; background: #eef4ff; color: #0755bd; font-size: 14px; }
+.login-panel .message-error { background: #fff0f0; color: #a12828; border-left: 3px solid #c63e3e; }
+.login-panel .login-success { background: #edf8f1; color: #16703a; }
+@media (min-width: 600px) { .login-page { padding-top: 64px; } }
 
 button {
     background: #172554;
@@ -609,3 +604,99 @@ dialog p {
     .schedule-layout { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
     .schedule-date-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Dashboard theme is scoped so the public site and login remain independent. */
+.admin-screen { --admin-navy: #0b1730; --admin-blue: #1677ff; --admin-link: #0755bd; --admin-line: #dce3ed; background: #f1f4f8; color: #17243b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+.admin-screen .dashboard { display: block; }
+.admin-skip { position: absolute; top: 8px; left: 8px; z-index: 20; padding: 12px; background: #fff; color: #0755bd; transform: translateY(-150%); }
+.admin-skip:focus { transform: none; }
+.admin-screen .sidebar { margin: 12px 12px 0; padding: 22px 20px; border-radius: 20px; background: var(--admin-navy); }
+.admin-screen .sidebar .admin-brand { display: flex; align-items: center; gap: 12px; padding: 0; color: #fff; text-decoration: none; font-size: 26px; font-weight: 800; line-height: 1.2; white-space: normal; }
+.admin-brand svg { flex-shrink: 0; }
+.admin-brand small { display: block; margin-top: 5px; font-size: 11px; font-weight: 500; color: #c2cede; }
+.admin-screen .sidebar > p { display: block; margin: 18px 0 0; color: #8eb9ff; font-size: 12px; }
+.admin-screen .sidebar nav { position: fixed; z-index: 5; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; margin: 0; padding: 6px; overflow: visible; border: 1px solid #ffffff26; border-radius: 20px; background: var(--admin-navy); box-shadow: 0 4px 16px #0b173026; }
+.admin-screen .sidebar nav a { flex-direction: column; justify-content: center; gap: 5px; min-width: 0; min-height: 60px; padding: 8px 2px; border-radius: 12px; color: #dbe4f1; font-size: 10px; font-weight: 600; white-space: normal; text-align: center; }
+.admin-screen .sidebar nav a.active { color: #e5ae35; background: #ffffff12; }
+.admin-screen .sidebar nav a:hover { background: #ffffff12; }
+.admin-screen .sidebar nav a:focus-visible { outline-offset: -3px; }
+.admin-screen .main-content { padding: 24px 16px 32px; max-width: 1200px; }
+.admin-screen :is(main, section[id]) { scroll-margin-top: 20px; scroll-margin-bottom: 112px; }
+.admin-screen h1, .admin-screen h2, .admin-screen h3 { overflow-wrap: anywhere; }
+.admin-screen .page-header { align-items: center; gap: 12px; margin-bottom: 20px; }
+.admin-screen .page-header h1 { margin: 0; font-size: 22px; }
+.admin-screen .page-header > div { flex: 1 1 180px; }
+.admin-screen button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 48px; padding: 11px 16px; border: 1px solid transparent; border-radius: 12px; background: var(--admin-blue); color: #fff; font-weight: 650; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+.admin-screen button svg { flex-shrink: 0; }
+.admin-screen button:hover:not(:disabled) { background: var(--admin-link); }
+.admin-screen button:disabled { cursor: not-allowed; opacity: .55; }
+.admin-screen :is(.secondary-button, .page-header button) { background: #fff; color: var(--admin-link); border-color: #b8c6d8; }
+.admin-screen :is(.secondary-button, .page-header button):hover:not(:disabled) { background: #eef4ff; }
+.admin-screen .page-header button { min-height: 44px; padding: 10px 12px; font-size: 13px; }
+.admin-screen .danger-button { background: #a5212d; border-color: #a5212d; }
+.admin-screen .danger-button:hover:not(:disabled) { background: #871b25; }
+.admin-screen .tool-button { width: 44px; min-height: 44px; padding: 10px; flex: 0 0 44px; }
+.admin-screen button.delete-tool { color: #a12828; border-color: #edc9cc; background: #fff; }
+.admin-screen .dashboard-cards { gap: 10px; margin-bottom: 32px; }
+.admin-screen .dashboard-cards .card { border: 1px solid var(--admin-line); border-radius: 16px; padding: 16px 8px; }
+.admin-screen .dashboard-cards h3 { color: #536176; font-weight: 600; font-size: 11px; white-space: nowrap; }
+.admin-screen .dashboard-cards p { font-size: 28px; }
+.admin-screen #teams p { color: var(--admin-link); }
+.admin-screen #matches p { color: #16703a; }
+.admin-screen #results p { color: #17243b; }
+.admin-screen :is(.result-entry, .team-management) { border-top: 1px solid var(--admin-line); padding-top: 28px; margin-top: 32px; }
+.admin-screen :is(.result-entry h2, .section-header h2) { font-size: 22px; }
+.admin-screen .result-entry h2 { margin-bottom: 20px; }
+.admin-screen .section-header { align-items: center; margin-bottom: 20px; }
+.admin-screen :is(.team-form, #result-form) { padding: 18px; border: 1px solid var(--admin-line); border-radius: 16px; background: #fff; }
+.admin-screen .form-field > label { color: #536176; font-weight: 650; font-size: 13px; }
+.admin-screen :is(input:not([type="checkbox"]), select) { min-height: 52px; border: 1px solid #b8c6d8; border-radius: 12px; padding: 12px 14px; color: #17243b; background: #fff; font-size: 16px; }
+.admin-screen input[type="hidden"] { display: none; }
+.admin-screen :is(input, select):hover:not(:disabled) { border-color: var(--admin-link); }
+.admin-screen :is(input, select):disabled { background: #edf1f6; color: #536176; opacity: 1; }
+.admin-screen .form-field:has(> select) { position: relative; }
+.admin-screen .form-field:has(> select)::after { content: ""; position: absolute; right: 18px; bottom: 23px; width: 8px; height: 8px; border-right: 2px solid var(--admin-link); border-bottom: 2px solid var(--admin-link); transform: rotate(45deg); pointer-events: none; }
+.admin-screen select { appearance: none; -webkit-appearance: none; padding-right: 44px; height: 52px; }
+.admin-screen :focus-visible { outline: 3px solid var(--admin-blue); outline-offset: 3px; }
+.admin-screen .set-row { border-color: var(--admin-line); gap: 12px; }
+.admin-screen .score-field label { color: #536176; font-size: 13px; }
+.admin-screen .score-field input { font-size: 22px; }
+.admin-screen .admin-team-row { padding: 16px; margin-bottom: 10px; border: 1px solid var(--admin-line); border-radius: 16px; background: #fff; grid-template-columns: 48px minmax(0, 1fr) auto; }
+.admin-screen .team-row-actions { grid-column: 3; flex-direction: column; gap: 6px; }
+.admin-screen .admin-team-logo { border-radius: 8px; }
+.admin-screen .admin-team-placeholder { color: var(--admin-link); background: #eef4ff; }
+.admin-screen .schedule-list li { padding: 16px; margin-bottom: 10px; border: 1px solid var(--admin-line); border-radius: 16px; background: #fff; }
+.admin-screen .schedule-actions { align-items: center; }
+.admin-screen .schedule-actions button[aria-pressed="true"] { background: var(--admin-navy); color: #fff; border-color: var(--admin-navy); }
+.admin-screen .schedule-list p, .admin-screen .field-hint { color: #536176; font-size: 13px; }
+.admin-screen #registration-list li { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.admin-screen #registration-list li span { flex: 1 1 150px; }
+.admin-screen #competition-standings { padding-left: 24px; }
+.admin-screen #competition-standings li { padding: 12px 0; border-bottom: 1px solid var(--admin-line); font-size: 14px; overflow-wrap: anywhere; }
+.admin-screen .file-picker { border-radius: 10px; border-color: #b8c6d8; color: var(--admin-link); background: #eef4ff; font-size: 14px; font-weight: 600; }
+.admin-screen input[type="checkbox"] { accent-color: var(--admin-blue); }
+.admin-screen :is(.message-error, .message-success):not(:empty) { padding: 12px 14px; margin-block: 12px; border-radius: 8px; font-size: 14px; }
+.admin-screen .message-error:not(:empty) { background: #fff0f0; color: #a12828; }
+.admin-screen .message-success:not(:empty) { background: #edf8f1; color: #16703a; }
+.admin-screen dialog { padding: 24px; border-color: var(--admin-line); border-radius: 20px; color: #17243b; }
+.admin-screen dialog::backdrop { background: #0b173080; }
+@media (min-width: 600px) {
+    .admin-screen .main-content { padding-inline: 24px; }
+    .admin-screen .sidebar nav a { font-size: 12px; }
+    .admin-screen .team-row-actions { flex-direction: row; }
+    .admin-screen .dashboard-cards .card { padding: 20px; }
+    .admin-screen .dashboard-cards h3 { font-size: 12px; }
+    .admin-screen :is(.team-form, #result-form) { padding: 24px; }
+    .admin-screen .page-header > div { flex-basis: 240px; }
+}
+@media (min-width: 960px) {
+    .admin-screen { padding-bottom: 0; }
+    .admin-screen .dashboard { display: grid; grid-template-columns: 244px minmax(0, 1fr); align-items: start; }
+    .admin-screen .sidebar { position: sticky; top: 12px; margin: 12px 0 12px 12px; min-height: calc(100dvh - 24px); padding: 24px 16px; }
+    .admin-screen .sidebar .admin-brand { gap: 8px; font-size: 24px; }
+    .admin-brand small { font-size: 10px; }
+    .admin-screen .sidebar nav { position: static; display: flex; flex-direction: column; gap: 8px; margin-top: 28px; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+    .admin-screen .sidebar nav a { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 12px; text-align: left; font-size: 14px; }
+    .admin-screen .main-content { padding: 32px; }
+}
+@media (forced-colors: active) { .admin-screen select { appearance: auto; -webkit-appearance: auto; } .admin-screen .form-field:has(> select)::after { display: none; } }

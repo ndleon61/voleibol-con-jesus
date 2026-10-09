@@ -3,30 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1730">
     <title>Voli Conociendo a Jesús | Iniciar sesión</title>
+    <link rel="icon" type="image/svg+xml" href="/media/volleyball.svg">
     <link rel="stylesheet" href="/admin.css">
 </head>
-<body>
+<body class="login-screen">
     <main class="login-page">
-        <h1>Voli Conociendo a Jesús</h1>
+        <header class="login-header">
+            <a class="login-brand" href="/" aria-label="Voli Conociendo a Jesús, inicio">
+                <!-- Lucide volleyball icon; ISC license in licenses/lucide-icons.txt. -->
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M11 7a16 16 20 0 1 10.98 4.362" />
+                    <path d="M12 12a13 13 0 0 1-8.66 5" />
+                    <path d="M16.83 13.634a16 16 0 0 1-9.267 7.328" />
+                    <path d="M20.66 17A13 13 0 0 0 12 12a13 13 0 0 1 0-10" />
+                    <path d="M8.17 15.366a16 16 0 0 1-1.713-11.69" />
+                    <circle cx="12" cy="12" r="10" />
+                </svg>
+                <h1>VOLI<span>CONOCIENDO A JESÚS</span></h1>
+            </a>
+            <p>Administración de la liga</p>
+        </header>
         <section class="card login-panel">
             <h2>Iniciar sesión</h2>
             {% if error %}
             <p class="message-error" role="alert">{{ error }}</p>
             {% elif request.args.get('motivo') == 'sesion' %}
-            <p role="status">Inicia sesión para acceder a la administración.</p>
+            <p class="login-notice" role="status">Inicia sesión para acceder a la administración.</p>
             {% elif request.args.get('salida') == '1' %}
-            <p role="status">Has cerrado la sesión correctamente.</p>
+            <p class="login-notice login-success" role="status">Has cerrado la sesión correctamente.</p>
             {% endif %}
             <form action="/login" method="post" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <label for="username">Usuario</label>
-                <input id="username" name="username" type="text" autocomplete="username" maxlength="64" required>
-                <label for="password">Contraseña</label>
-                <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
-                <button type="submit">Entrar</button>
+                <div class="login-field">
+                    <label for="username">Usuario</label>
+                    <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required>
+                </div>
+                <div class="login-field">
+                    <label for="password">Contraseña</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+                </div>
+                <button type="submit">
+                    Entrar
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m10 17 5-5-5-5M15 12H3M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7" />
+                    </svg>
+                </button>
             </form>
-            <a href="/">Volver a la liga</a>
+            <a class="login-return" href="/"><span aria-hidden="true">←</span> Volver a la liga</a>
         </section>
     </main>
 </body>

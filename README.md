@@ -682,28 +682,30 @@ Mediciones actualizadas del 9 de octubre de 2026, con los datos reales de la lig
 
 | Recurso | Bytes sin comprimir | Bytes gzip, nivel 9 |
 | --- | ---: | ---: |
-| HTML | 12452 | 3125 |
+| HTML | 12526 | 3156 |
 | CSS | 16357 | 3760 |
 | JavaScript | 20574 | 6220 |
-| Imágenes inicialmente solicitadas | 21276 | WebP ya comprimido |
+| Imágenes inicialmente solicitadas, incluido favicon | 21830 | WebP ya comprimido; favicon SVG local |
 | Fuentes/iconos externos | 0 | 0 |
 
-HTML + CSS comprimidos: 6885 bytes, por debajo del objetivo de 70 KB.
+HTML + CSS comprimidos: 6916 bytes, por debajo del objetivo de 70 KB.
 JavaScript comprimido: 6220 bytes, por debajo de 50 KB. Las imágenes y fuentes
 también cumplen los objetivos de 100 KB y 25 KB para los datos actuales.
 Estas cifras gzip se midieron sobre los archivos, no sobre respuestas comprimidas:
 el servidor Flask de desarrollo envía `Content-Encoding: identity`.
-La transferencia real medida fue de 81606 bytes, incluidas cabeceras,
-API e imágenes, en 13 solicitudes iniciales. Los archivos estáticos mantienen
+La transferencia real medida fue de 82971 bytes, incluidas cabeceras,
+API e imágenes, en 14 solicitudes iniciales. El favicon local de voleibol evita
+la petición automática a `/favicon.ico`, que antes devolvía 404. Los archivos estáticos mantienen
 ETag/revalidación (`Cache-Control: no-cache`); los logotipos subidos conservan
 su caché inmutable existente. En producción, habilita compresión en el proxy
 HTTPS y vuelve a medir sin cambiar las protecciones de páginas privadas.
 
 Prueba Slow 3G: tres visitas independientes con caché desactivada, viewport
 390 × 844, CDP de Chromium, 400 ms de latencia, 400 kbit/s de descarga/subida
-y CPU ralentizada cuatro veces. Datos utilizables en 2636–2640 ms; primer
-contenido visible en 1584–1600 ms; desplazamiento de diseño acumulado (CLS)
-0,00017. No es una medición de una red cubana real ni de un teléfono físico.
+y CPU ralentizada cuatro veces. Datos utilizables en 2637–2638 ms; primer
+contenido visible en 1580–1592 ms; recursos iniciales estabilizados en 3819–3846 ms;
+desplazamiento de diseño acumulado (CLS) 0,00073.
+No es una medición de una red cubana real ni de un teléfono físico.
 Logotipos históricos o futuras imágenes subidas pueden aumentar la transferencia:
 no se alteran automáticamente los archivos históricos para cumplir un presupuesto.
 
@@ -740,6 +742,25 @@ de este README y ejecuta con tus variables de entorno:
 PORT=3002 .venv/bin/python server-flask/app.py
 ```
 
+La investigación de la fase 9B confirmó que la prueba anterior esperaba el
+evento `load` completo antes de comprobar si los datos eran utilizables. Un
+recurso no esencial pendiente puede impedir ese evento; una regresión con una
+imagen retenida reproduce el timeout mientras la clasificación sigue disponible.
+El timeout transitorio original no tenía diagnóstico de red y no volvió a
+reproducirse en las visitas normales: no es posible atribuirlo retrospectivamente
+a una petición concreta ni afirmar que lo causó el favicon.
+
+La prueba conserva la misma simulación Slow 3G y usa un navegador independiente
+para las mediciones. Espera `DOMContentLoaded` y datos visibles dentro de un
+presupuesto total de 5 segundos; exige primer contenido visible en 3 segundos,
+recursos iniciales completos en 10 segundos, CLS menor que 0,1 y los presupuestos
+de transferencia de 70/50/25/100 KiB. No se amplió el timeout anterior de 30 segundos.
+Los bytes se miden después de completar las peticiones iniciales, en vez de
+esperar un segundo fijo. Los informes `slow3g-*-network.json` incluyen tiempos,
+estados HTTP, recursos pendientes y errores JavaScript; las fallas también guardan
+`slow3g-*-failure.json` y un informe parcial. No registran cookies, credenciales
+ni cabeceras de autenticación. Esta corrección no cambia el diseño ni las APIs.
+
 Abre `http://127.0.0.1:3002`. No se necesita migración para esta fase. Las suites
 de la fase 9A pasaron: 109 pruebas Python. Tras el ajuste visual pasan las 27
 pruebas JavaScript y las comprobaciones de navegador; no cambió código Python.
@@ -748,6 +769,30 @@ equipos, jornadas, partidos, sets, temporadas, torneos e inscripciones antes y
 después de las pruebas coinciden. El panel de administración no se rediseñó.
 
 ## Pruebas
+
+El panel administrativo y el inicio de sesión comparten ahora la identidad
+visual pública: marca VOLI, icono de voleibol, azul oscuro, botones azules y
+controles redondeados. En teléfonos, el panel usa cinco pestañas inferiores
+(Panel, Equipos, Torneos, Jornadas y Resultados); desde 960 px usa una barra
+lateral. La navegación conserva todas las herramientas existentes y sigue
+las anclas con `aria-current`. No cambia la autenticación, CSRF ni los datos.
+
+Comprobación visual opcional del panel, con Playwright instalado por separado:
+
+```sh
+NODE_PATH=/ruta/a/node_modules ADMIN_QA_URL=http://127.0.0.1:3002 node tests/admin-browser.cjs
+```
+
+Esta prueba sirve una plantilla y scripts autenticados solo dentro del navegador
+de pruebas e intercepta todas las APIs con datos ficticios. No usa credenciales
+reales ni modifica PostgreSQL. Comprueba formularios, diálogos, protección visual
+de resultados finalizados, envío de resultados con CSRF y navegación a 320,
+390, 768, 1024 y 1440 px en Chromium y WebKit.
+
+Verificación final de la fase 9B: 110 pruebas Python y 31 pruebas JavaScript
+aprobadas, más las suites públicas y administrativas de Chromium y WebKit.
+Las pruebas PostgreSQL siguen usando esquemas aislados. Las medidas Slow 3G
+se ejecutan separadas de otros procesos de prueba para evitar competencia de CPU.
 
 ```sh
 node --test tests/*.test.cjs
