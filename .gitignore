@@ -1,6 +1,14 @@
 node_modules/
 .venv/
+.venv-clean/
+.venv-clean-backup/
 __pycache__/
 *.pyc
 .env
+.env.*
+!.env.example
+backups/
+*.dump
+*.backup
+server-flask/instance/
 .DS_Store

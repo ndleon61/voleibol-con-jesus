@@ -1,49 +1,25 @@
-const teamsMetadata = [
-  {
-    name: "Los Abusadores",
-    wins: 0,
-    losses: 0,
-    setsFor: 0,
-    setsAgainst: 0,
-    logo: "media/los_abusadores.JPG",
-  },
-  {
-    name: "Los Lobos",
-    wins: 0,
-    losses: 0,
-    setsFor: 0,
-    setsAgainst: 0,
-    logo: "media/los_lobos.JPG",
-  },
-  {
-    name: "Los Defensores",
-    wins: 0,
-    losses: 0,
-    setsFor: 0,
-    setsAgainst: 0,
-    logo: "media/polea.JPG",
-  },
-  {
-    name: "La Furia Roja",
-    wins: 0,
-    losses: 0,
-    setsFor: 0,
-    setsAgainst: 0,
-    logo: "media/la_furia_roja.JPG",
-  },
-  {
-    name: "La Ofensiva Aplastante",
-    wins: 0,
-    losses: 0,
-    setsFor: 0,
-    setsAgainst: 0,
-    logo: "media/la_ofensiva_aplastante.JPG",
-  },
-];
-
-// Teams will be loaded from the Express API.
+// Teams and their logos are loaded from the Flask API.
 let teams = [];
 let jornadas = [];
+
+function matchSchedule(game) {
+  if (!game.startsAt) return game.time || "Horario por confirmar";
+  const date = new Date(game.startsAt);
+  if (Number.isNaN(date.getTime())) return "Horario por confirmar";
+  return new Intl.DateTimeFormat("es-CU", {
+    timeZone: "America/Havana", dateStyle: "medium", timeStyle: "short", hourCycle: "h23",
+  }).format(date);
+}
+
+function escapeHTML(value) {
+  const element = document.createElement("span");
+  element.textContent = String(value ?? "");
+  return element.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+}
+
+function getStatusClass(status) {
+  return ["live", "finished", "scheduled"].includes(status) ? status : "scheduled";
+}
 
 // -------------------------------------
 // MATCH VALIDATION AND CALCULATIONS
@@ -52,8 +28,12 @@ let jornadas = [];
 function isValidSet(set, setNumber) {
   if (
     !set ||
-    !Number.isFinite(set.team1Points) ||
-    !Number.isFinite(set.team2Points)
+    !Number.isSafeInteger(set.team1Points) ||
+    !Number.isSafeInteger(set.team2Points) ||
+    set.team1Points < 0 ||
+    set.team2Points < 0 ||
+    set.team1Points > 2147483647 ||
+    set.team2Points > 2147483647
   ) {
     return false;
   }
@@ -66,7 +46,10 @@ function isValidSet(set, setNumber) {
   const team2Wins =
     set.team2Points >= pointsToWin && set.team2Points - set.team1Points >= 2;
 
-  return team1Wins || team2Wins;
+  const winner = Math.max(set.team1Points, set.team2Points);
+  const loser = Math.min(set.team1Points, set.team2Points);
+  return (team1Wins || team2Wins) &&
+    (winner === pointsToWin || winner - loser === 2);
 }
 
 function isValidMatch(results) {
@@ -86,7 +69,8 @@ function isValidMatch(results) {
     const set = results.sets[index];
     const setNumber = index + 1;
 
-    if (!isValidSet(set, setNumber)) {
+    if (!isValidSet(set, setNumber) ||
+        (set.setNumber !== undefined && set.setNumber !== setNumber)) {
       return false;
     }
 
@@ -147,7 +131,7 @@ function getStatusText(status) {
 // -------------------------------------
 
 function calculateStandings() {
-  const table = {};
+  const table = Object.create(null);
 
   teams.forEach(function (team) {
     table[team.name] = {
@@ -169,6 +153,7 @@ function calculateStandings() {
       if (
         !table[game.team1] ||
         !table[game.team2] ||
+        game.team1 === game.team2 ||
         !isValidMatch(game.results)
       ) {
         console.warn(
@@ -201,6 +186,15 @@ function calculateStandings() {
   });
 
   return table;
+}
+
+function compareTeamNames(a, b) {
+  const left = [...a.toLowerCase()].map(c => c.codePointAt(0));
+  const right = [...b.toLowerCase()].map(c => c.codePointAt(0));
+  for (let i = 0; i < Math.min(left.length, right.length); i++) {
+    if (left[i] !== right[i]) return left[i] - right[i];
+  }
+  return left.length - right.length;
 }
 
 // -------------------------------------
@@ -244,7 +238,8 @@ function renderApp() {
     const differenceA = a.setsFor - a.setsAgainst;
     const differenceB = b.setsFor - b.setsAgainst;
 
-    return differenceB - differenceA;
+    return differenceB - differenceA || b.setsFor - a.setsFor ||
+      compareTeamNames(a.name, b.name);
   });
 
   standingsArray.forEach(function (team, index) {
@@ -252,7 +247,7 @@ function renderApp() {
 
     row.innerHTML = `
             <td>${index + 1}</td>
-            <td>${team.name}</td>
+            <td>${escapeHTML(team.name)}</td>
             <td>${team.wins}</td>
             <td>${team.losses}</td>
             <td>${team.setsFor}</td>
@@ -275,13 +270,20 @@ function renderApp() {
       const resultCard = document.createElement("div");
       resultCard.classList.add("match-card");
 
+      if (!isValidMatch(game.results)) {
+        resultCard.textContent = `${game.team1} vs ${game.team2}: Resultado no válido`;
+        resultsContainer.appendChild(resultCard);
+        return;
+      }
       const result = calculateSets(game.results);
 
       resultCard.innerHTML = `
                 <h4>
-                    ${game.team1} ${result.team1Sets} -
-                    ${result.team2Sets} ${game.team2}
+                    ${escapeHTML(game.team1)} ${result.team1Sets} -
+                    ${result.team2Sets} ${escapeHTML(game.team2)}
                 </h4>
+
+                <p class="match-time">${escapeHTML(matchSchedule(game))}</p>
 
                 <div class="set-scores">
                     ${(game.results?.sets || [])
@@ -339,8 +341,8 @@ function renderApp() {
             <button class="team-header" type="button">
                 <div>
                     <div class="team-title">
-                        <img src="${team.logo || ""}" alt="${team.name}">
-                        <h3>${team.name}</h3>
+                        ${team.logo ? `<img src="${escapeHTML(team.logo)}" alt="${escapeHTML(team.name)}">` : ""}
+                        <h3>${escapeHTML(team.name)}</h3>
                     </div>
 
                     <p>Posición: ${teamPosition}</p>
@@ -375,9 +377,11 @@ function renderApp() {
     const teamHeader = teamCard.querySelector(".team-header");
     const teamToggle = teamCard.querySelector(".team-toggle");
     const teamDetails = teamCard.querySelector(".team-details");
+    teamHeader.setAttribute("aria-expanded", "false");
 
     teamHeader.addEventListener("click", function () {
       teamCard.classList.toggle("expanded");
+      teamHeader.setAttribute("aria-expanded", String(teamCard.classList.contains("expanded")));
 
       teamToggle.textContent = teamCard.classList.contains("expanded")
         ? "▲"
@@ -388,14 +392,14 @@ function renderApp() {
       const matchElement = document.createElement("div");
       matchElement.classList.add("match-card");
 
-      const statusClass = game.status || "scheduled";
+      const statusClass = getStatusClass(game.status);
 
       const opponent = game.team1 === team.name ? game.team2 : game.team1;
 
       matchElement.innerHTML = `
-                <p>${game.time}</p>
+                <p>${escapeHTML(matchSchedule(game))}</p>
 
-                <h4>${game.team1} vs ${game.team2}</h4>
+                <h4>${escapeHTML(game.team1)} vs ${escapeHTML(game.team2)}</h4>
 
                 <span class="game-status ${statusClass}">
                     ${getStatusText(game.status)}
@@ -404,7 +408,7 @@ function renderApp() {
 
       if (game.status !== "finished") {
         matchElement.innerHTML += `
-                    <p>Próximo rival: ${opponent}</p>
+                    <p>Próximo rival: ${escapeHTML(opponent)}</p>
                 `;
       } else {
         const result = calculateSets(game.results);
@@ -434,8 +438,8 @@ function renderApp() {
                             return `
                                     <p>
                                         Set ${index + 1}:
-                                        ${set.team1Points} -
-                                        ${set.team2Points}
+                                        ${escapeHTML(set.team1Points)} -
+                                        ${escapeHTML(set.team2Points)}
                                     </p>
                                 `;
                           })
@@ -455,26 +459,32 @@ function renderApp() {
   upcomingMatchesContainer.innerHTML = "";
 
   jornadas.forEach(function (jornada) {
+    if (!jornada.games.some((game) => game.status !== "finished")) {
+      return;
+    }
     const jornadaElement = document.createElement("div");
     jornadaElement.classList.add("jornada-card");
 
     jornadaElement.innerHTML = `
-            <h3>Jornada ${jornada.number}</h3>
+            <h3>Jornada ${escapeHTML(jornada.number)}</h3>
         `;
 
     jornada.games.forEach(function (game) {
+      if (game.status === "finished") {
+        return;
+      }
       const matchElement = document.createElement("div");
       matchElement.classList.add("match-card");
 
-      const statusClass = game.status || "scheduled";
+      const statusClass = getStatusClass(game.status);
 
       matchElement.innerHTML = `
-                <p class="match-time">${game.time}</p>
+                <p class="match-time">${escapeHTML(matchSchedule(game))}</p>
 
                 <h4>
-                    ${game.team1}
+                    ${escapeHTML(game.team1)}
                     <span>vs</span>
-                    ${game.team2}
+                    ${escapeHTML(game.team2)}
                 </h4>
 
                 <span class="game-status ${statusClass}">
@@ -482,22 +492,14 @@ function renderApp() {
                 </span>
             `;
 
-      if (game.status === "finished") {
-        const result = calculateSets(game.results);
-
-        matchElement.innerHTML += `
-                    <p>
-                        Resultado:
-                        ${result.team1Sets} - ${result.team2Sets}
-                    </p>
-                `;
-      }
-
       jornadaElement.appendChild(matchElement);
     });
 
     upcomingMatchesContainer.appendChild(jornadaElement);
   });
+  if (!upcomingMatchesContainer.children.length) {
+    upcomingMatchesContainer.textContent = "No hay partidos próximos registrados.";
+  }
 
   console.log("Website rendered successfully.");
 }
@@ -509,8 +511,8 @@ function renderApp() {
 
 function loadTeams() {
   Promise.all([
-    fetch("http://localhost:3000/api/teams"),
-    fetch("http://localhost:3000/api/jornadas"),
+    fetch("/api/teams"),
+    fetch("/api/jornadas"),
   ])
     .then(function (responses) {
       responses.forEach(function (response) {
@@ -538,17 +540,10 @@ function loadTeams() {
       }
 
       teams = teamsFromServer.map(function (apiTeam) {
-        const localTeam = teamsMetadata.find(function (team) {
-          return team.name === apiTeam.name;
-        });
-
-        if (!localTeam) {
-          console.warn("No local logo metadata found for:", apiTeam.name);
-        }
-
         return {
-          ...(localTeam || {}),
-          ...apiTeam,
+          id: apiTeam.id,
+          name: apiTeam.name,
+          logo: apiTeam.logo || "",
         };
       });
 

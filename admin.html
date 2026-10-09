@@ -1,0 +1,250 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Voli Conociendo a Jesus | Administración</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <h2>Voli Conociendo a Jesus</h2>
+            <p>Administración</p>
+
+            <nav>
+                <a class="active" href="#panel">Panel</a>
+                <a href="#team-management">Equipos</a>
+                <a href="#competition-management">Temporadas y torneos</a>
+                <a href="#schedule-management">Jornadas</a>
+                <a href="#results">Resultados</a>
+                <a href="#result-entry">Registrar resultado</a>
+            </nav>
+        </aside>
+
+        <main class="main-content" id="panel">
+            <header class="page-header">
+                <div>
+                    <h1>Panel de administración</h1>
+                    <p>Administración de la liga de voleibol.</p>
+                </div>
+                <form action="/logout" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit">Cerrar sesión</button>
+                </form>
+            </header>
+
+            <section class="dashboard-cards">
+                <article class="card" id="teams">
+                    <h3>Equipos</h3>
+                    <p>—</p>
+                </article>
+
+                <article class="card" id="matches">
+                    <h3>Jornadas</h3>
+                    <p>—</p>
+                </article>
+
+                <article class="card" id="results">
+                    <h3>Resultados</h3>
+                    <p>—</p>
+                </article>
+            </section>
+
+            <section class="result-entry" id="result-entry">
+                <h2>Registrar resultado</h2>
+                <p>Selecciona un partido e introduce los puntos de cada set.</p>
+
+                <form id="result-form" novalidate>
+                    <div class="form-field match-field">
+                        <label for="match-select">Partido</label>
+                        <select id="match-select" required>
+                            <option value="">Cargando partidos...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-field count-field">
+                        <label for="set-count">Cantidad de sets</label>
+                        <select id="set-count">
+                            <option value="3">3 sets</option>
+                            <option value="4">4 sets</option>
+                            <option value="5">5 sets</option>
+                        </select>
+                    </div>
+
+                    <div id="sets-container"></div>
+
+                    <div class="result-actions">
+                        <button type="submit" id="save-result">
+                            Guardar resultado
+                        </button>
+                        <p id="result-message" role="status" aria-live="polite"></p>
+                    </div>
+                </form>
+            </section>
+
+            <section class="team-management" id="competition-management" aria-labelledby="competitions-heading">
+                <header class="section-header">
+                    <h2 id="competitions-heading">Temporadas y torneos</h2>
+                    <button id="refresh-competitions" type="button" class="secondary-button">Actualizar</button>
+                </header>
+                <p id="competition-message" role="status" aria-live="polite"></p>
+                <div class="teams-layout">
+                    <form id="season-form" class="team-form" novalidate>
+                        <h3>Temporada</h3>
+                        <div class="form-field"><label for="season-select">Temporada seleccionada</label><select id="season-select"></select></div>
+                        <div class="form-field"><label for="season-name">Nombre</label><input id="season-name" maxlength="100" required></div>
+                        <div class="form-field"><label for="season-start">Fecha inicial (opcional)</label><input id="season-start" type="date"></div>
+                        <div class="form-field"><label for="season-end">Fecha final (opcional)</label><input id="season-end" type="date"></div>
+                        <div class="form-field"><label for="season-status">Estado</label><select id="season-status"><option value="planned">Planificada</option><option value="active">En curso</option><option value="completed">Completada</option><option value="archived">Archivada</option></select></div>
+                        <div class="team-form-actions"><button type="submit">Guardar temporada</button><button id="new-season" type="button" class="secondary-button">Nueva temporada</button></div>
+                    </form>
+                    <form id="tournament-form" class="team-form" novalidate>
+                        <h3>Torneo</h3>
+                        <div class="form-field"><label for="tournament-select">Torneo seleccionado</label><select id="tournament-select"></select></div>
+                        <div class="form-field"><label for="tournament-season">Temporada del torneo</label><select id="tournament-season" required></select></div>
+                        <div class="form-field"><label for="tournament-name">Nombre</label><input id="tournament-name" maxlength="100" required></div>
+                        <div class="form-field"><label for="tournament-start">Fecha inicial (opcional)</label><input id="tournament-start" type="date"></div>
+                        <div class="form-field"><label for="tournament-end">Fecha final (opcional)</label><input id="tournament-end" type="date"></div>
+                        <div class="form-field"><label for="tournament-status">Estado</label><select id="tournament-status"><option value="planned">Planificado</option><option value="active">En curso</option><option value="completed">Completado</option><option value="archived">Archivado</option></select></div>
+                        <div class="team-form-actions"><button type="submit">Guardar torneo</button><button id="new-tournament" type="button" class="secondary-button">Nuevo torneo</button><button id="activate-tournament" type="button" class="secondary-button">Activar para el público</button></div>
+                    </form>
+                </div>
+                <h3>Equipos inscritos</h3>
+                <form id="registration-form" class="team-form" novalidate>
+                    <div class="form-field"><label for="registration-team">Equipo</label><select id="registration-team" required></select></div>
+                    <button type="submit">Inscribir equipo</button>
+                </form>
+                <ul id="registration-list" class="schedule-list"></ul>
+                <h3>Clasificación del torneo</h3>
+                <ol id="competition-standings"></ol>
+            </section>
+
+            <section class="team-management" id="schedule-management" aria-labelledby="schedule-heading">
+                <header class="section-header">
+                    <h2 id="schedule-heading">Gestión de jornadas</h2>
+                    <button id="refresh-schedule" type="button" class="secondary-button">Actualizar</button>
+                </header>
+                <p id="schedule-message" role="status" aria-live="polite">Cargando jornadas...</p>
+                <div class="schedule-layout">
+                    <div>
+                        <ul id="jornada-list" class="schedule-list"></ul>
+                        <h3 id="scheduled-matches-heading">Partidos</h3>
+                        <ul id="scheduled-match-list" class="schedule-list"></ul>
+                    </div>
+                    <div class="schedule-forms">
+                        <form id="jornada-form" class="team-form" novalidate>
+                            <h3 id="jornada-form-title">Crear jornada</h3>
+                            <input id="jornada-edit-id" type="hidden">
+                            <div class="form-field">
+                                <label for="jornada-number">Número de jornada</label>
+                                <input id="jornada-number" type="number" inputmode="numeric" min="1" max="2147483647" step="1" required>
+                            </div>
+                            <div class="team-form-actions">
+                                <button id="save-jornada" type="submit">Guardar jornada</button>
+                                <button id="cancel-jornada-edit" type="button" class="secondary-button" hidden>Cancelar</button>
+                            </div>
+                            <p id="jornada-message" role="status" aria-live="polite"></p>
+                        </form>
+                        <form id="schedule-form" class="team-form" novalidate>
+                            <h3 id="schedule-form-title">Programar partido</h3>
+                            <input id="schedule-match-id" type="hidden">
+                            <div class="form-field">
+                                <label for="schedule-jornada">Jornada</label>
+                                <select id="schedule-jornada" required></select>
+                            </div>
+                            <div class="form-field">
+                                <label for="schedule-team1">Primer equipo</label>
+                                <select id="schedule-team1" required></select>
+                            </div>
+                            <div class="form-field">
+                                <label for="schedule-team2">Segundo equipo</label>
+                                <select id="schedule-team2" required></select>
+                            </div>
+                            <div class="schedule-date-fields">
+                                <div class="form-field">
+                                    <label for="schedule-date">Fecha</label>
+                                    <input id="schedule-date" type="date" required>
+                                </div>
+                                <div class="form-field">
+                                    <label for="schedule-time">Hora de Cuba</label>
+                                    <input id="schedule-time" type="time" step="60" required>
+                                </div>
+                            </div>
+                            <div class="team-form-actions">
+                                <button id="save-scheduled-match" type="submit">Guardar partido</button>
+                                <button id="cancel-schedule-edit" type="button" class="secondary-button" hidden>Cancelar</button>
+                            </div>
+                            <p id="scheduled-match-message" role="status" aria-live="polite"></p>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section class="team-management" id="team-management" aria-labelledby="teams-heading">
+                <header class="section-header">
+                    <h2 id="teams-heading">Equipos</h2>
+                    <button type="button" id="refresh-teams" class="secondary-button">Actualizar</button>
+                </header>
+                <div class="teams-layout">
+                    <div>
+                        <p id="team-list-message" role="status" aria-live="polite">Cargando equipos...</p>
+                        <ul id="admin-teams-list" class="admin-teams-list"></ul>
+                    </div>
+                    <form id="team-form" class="team-form" novalidate>
+                        <h3 id="team-form-title">Registrar equipo</h3>
+                        <input id="team-id" type="hidden">
+                        <div class="form-field">
+                            <label for="team-name">Nombre del equipo</label>
+                            <input id="team-name" name="name" maxlength="100" autocomplete="off" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="team-logo">Logotipo (opcional)</label>
+                            <div class="file-upload">
+                                <input id="team-logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="logo-requirements">
+                                <label class="file-picker" for="team-logo">Seleccionar archivo</label>
+                                <span id="team-file-name">Ningún archivo seleccionado</span>
+                            </div>
+                            <p id="logo-requirements" class="field-hint">JPEG, PNG o WebP. Máximo 2 MB.</p>
+                        </div>
+                        <img id="team-current-logo" class="team-current-logo" alt="Logotipo actual" width="96" height="96" hidden>
+                        <label id="remove-logo-field" class="checkbox-field" hidden>
+                            <input id="remove-team-logo" type="checkbox"> Eliminar logotipo actual
+                        </label>
+                        <div class="team-form-actions">
+                            <button id="save-team" type="submit">Registrar equipo</button>
+                            <button id="cancel-team-edit" type="button" class="secondary-button" hidden>Cancelar</button>
+                        </div>
+                        <p id="team-form-message" role="status" aria-live="polite"></p>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <dialog id="delete-team-dialog" aria-labelledby="delete-team-title">
+        <h2 id="delete-team-title">Eliminar equipo</h2>
+        <p id="delete-team-confirmation"></p>
+        <p id="delete-team-message" role="alert"></p>
+        <div class="team-form-actions">
+            <button id="cancel-team-delete" type="button" class="secondary-button">Cancelar</button>
+            <button id="confirm-team-delete" type="button" class="danger-button">Eliminar equipo</button>
+        </div>
+    </dialog>
+
+    <dialog id="schedule-delete-dialog" aria-labelledby="schedule-delete-title">
+        <h2 id="schedule-delete-title">Confirmar eliminación</h2>
+        <p id="schedule-delete-text"></p>
+        <p id="schedule-delete-message" role="alert"></p>
+        <div class="team-form-actions">
+            <button id="cancel-schedule-delete" type="button" class="secondary-button">Cancelar</button>
+            <button id="confirm-schedule-delete" type="button" class="danger-button">Eliminar</button>
+        </div>
+    </dialog>
+    <script src="admin.js"></script>
+    <script src="scheduling.js"></script>
+    <script src="competitions.js"></script>
+</body>
+</html>

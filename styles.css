@@ -223,15 +223,11 @@ th{
 }
 
 .team-details {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: max-height 0.3s ease, opacity 0.2s ease;
+    display: none;
 }
 
 .team-card.expanded .team-details {
-    max-height: 1000px;
-    opacity: 1;
+    display: block;
 }
 
 @media (prefers-reduced-motion: reduce) {

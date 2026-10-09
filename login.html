@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voli Conociendo a Jesús | Iniciar sesión</title>
+    <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+    <main class="login-page">
+        <h1>Voli Conociendo a Jesús</h1>
+        <section class="card login-panel">
+            <h2>Iniciar sesión</h2>
+            {% if error %}
+            <p class="message-error" role="alert">{{ error }}</p>
+            {% elif request.args.get('motivo') == 'sesion' %}
+            <p role="status">Inicia sesión para acceder a la administración.</p>
+            {% elif request.args.get('salida') == '1' %}
+            <p role="status">Has cerrado la sesión correctamente.</p>
+            {% endif %}
+            <form action="/login" method="post" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <label for="username">Usuario</label>
+                <input id="username" name="username" type="text" autocomplete="username" maxlength="64" required>
+                <label for="password">Contraseña</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <a href="/">Volver a la liga</a>
+        </section>
+    </main>
+</body>
+</html>
