@@ -1,5 +1,5 @@
 FROM python:3.12-slim-trixie
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH="/usr/lib/postgresql/18/bin:$PATH" SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH="/usr/lib/postgresql/18/bin:$PATH" SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt" HOME="/home/voli"
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
     && install -d /usr/share/postgresql-common/pgdg \
@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     && apt-get update && apt-get install -y --no-install-recommends postgresql-client-18 \
     && /usr/lib/postgresql/18/bin/pg_dump --version \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 10001 voli && useradd --uid 10001 --gid voli --no-create-home voli
+    && groupadd --gid 10001 voli && useradd --uid 10001 --gid voli --home-dir /home/voli --no-create-home voli \
+    && install -d -m 700 -o 10001 -g 10001 /home/voli
 COPY server-flask/requirements-production.txt /app/server-flask/requirements-production.txt
 RUN pip install --no-cache-dir -r server-flask/requirements-production.txt
 COPY server-flask/*.py /app/server-flask/

@@ -65,6 +65,15 @@ class StagingTests(unittest.TestCase):
             local = self.config(**{marker: "test"})
             self.assertFalse(settings(local)["TRUST_PROXY"])
 
+    def test_container_provisions_private_home_for_application_user(self):
+        root = Path(__file__).resolve().parent.parent
+        dockerfile = (root / "Dockerfile").read_text()
+        self.assertIn('HOME="/home/voli"', dockerfile)
+        self.assertIn("groupadd --gid 10001 voli", dockerfile)
+        self.assertIn("useradd --uid 10001 --gid voli --home-dir /home/voli", dockerfile)
+        self.assertIn("install -d -m 700 -o 10001 -g 10001 /home/voli", dockerfile)
+        self.assertLess(dockerfile.index("install -d -m 700"), dockerfile.index("ENTRYPOINT"))
+
     def test_proxied_https_reaches_routes_without_bypassing_authorization(self):
         config = settings(self.config(RAILWAY_ENVIRONMENT_ID="test-environment", RAILWAY_SERVICE_ID="test-service"))
         with patch.dict(backend.app.config, config), patch.object(backend.app, "wsgi_app",
@@ -168,11 +177,13 @@ class StagingTests(unittest.TestCase):
     def test_container_drops_root_before_executing_server(self):
         script = runpy.run_path(str(Path(__file__).resolve().parent.parent / "scripts/container_start.py"))
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ,
-                TEAM_LOGO_DIRECTORY=directory + "/logos", RAILWAY_VOLUME_MOUNT_PATH=directory), patch.object(Path, "is_mount", return_value=True), \
+                TEAM_LOGO_DIRECTORY=directory + "/logos", RAILWAY_VOLUME_MOUNT_PATH=directory,
+                HOME="/home/voli"), patch.object(Path, "is_mount", return_value=True), \
                 patch("os.getuid", return_value=0), patch("os.chown") as chown, \
                 patch("os.setgroups") as groups, patch("os.setgid") as gid, patch("os.setuid") as uid, \
                 patch("os.execvp") as execute, patch("sys.argv", ["container_start.py", "gunicorn", "app:app"]):
             calls = MagicMock()
+            execute.side_effect = lambda *args: self.assertEqual(os.environ["HOME"], "/home/voli")
             for name, function in (("groups", groups), ("gid", gid), ("uid", uid), ("execute", execute)):
                 calls.attach_mock(function, name)
             script["main"]()
