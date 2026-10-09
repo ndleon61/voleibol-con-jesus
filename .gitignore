@@ -16,6 +16,15 @@ backup/
 uploads/
 team-logos/
 *.dump
+*.pgdump
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.sql
+!server-flask/migrations/*.sql
+!docs/sql/staging-roles-before-schema.sql
+!docs/sql/staging-runtime-after-schema.sql
 *.dump.gz
 *.backup
 *.backup.gz

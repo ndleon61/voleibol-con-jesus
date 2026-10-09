@@ -1,0 +1,17 @@
+*
+!Dockerfile
+!*.html
+!*.css
+!*.js
+!media/
+!media/**
+!licenses/
+!licenses/*.txt
+!server-flask/
+!server-flask/*.py
+server-flask/test_*.py
+!server-flask/requirements-production.txt
+!server-flask/migrations/
+!server-flask/migrations/*.sql
+!scripts/
+!scripts/container_start.py

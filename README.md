@@ -406,11 +406,25 @@ El límite compartido es de 10 intentos por usuario y 30 por IP durante
 o contraseñas incorrectas. Una IP compartida puede alcanzar el límite;
 no se confía en cabeceras de IP reenviadas por defecto.
 
+## Staging Railway + Neon
+
+La preparación de despliegue, variables, volumen persistente, instalación nueva,
+verificación HTTPS, rollback y checklist de redes cubanas están en
+[docs/STAGING.md](docs/STAGING.md). El destino es una instalación nueva y vacía
+en `voli_staging_2026` (PostgreSQL 18.6), sin importar registros ni media locales.
+El comando optativo `init-staging --database-name voli_staging_2026
+--empty-database-confirmed` crea el esquema completo transaccionalmente y rechaza
+destinos ocupados. No se ejecuta automáticamente ni sin autorización remota.
+El Dockerfile usa la raíz del repositorio;
+no se han creado servicios ni desplegado. Staging requiere `STAGING=1`, conexión
+directa con SSL verificado y `/data/team-logos` persistente. No poner secretos
+en Git ni activar autodeploys antes de autorizar el primer despliegue.
+
 ## Producción
 
 No despliegues con `python server-flask/app.py` ni `flask run`. Se incluye
-Gunicorn, limitado a la interfaz local y pensado para un proxy HTTPS del mismo
-servidor. No se ha realizado ningún despliegue.
+Gunicorn, limitado por defecto a la interfaz local y pensado para un proxy HTTPS
+de confianza. Para Railway consulta la guía de staging. No se ha realizado ningún despliegue.
 
 Configura valores propios de tu instalación:
 
@@ -441,12 +455,14 @@ Comprueba vulnerabilidades antes de publicar y actualiza este archivo junto
 con la suite al aprobar nuevas versiones. No incluye hashes de distribución;
 utiliza un índice de paquetes de confianza o artefactos verificados.
 
-Gunicorn inicia dos procesos, escucha en `127.0.0.1:8000`, limita cabeceras,
+Gunicorn inicia dos procesos, escucha por defecto en `127.0.0.1:8000`, limita cabeceras,
 recicla procesos y espera hasta 45 segundos por solicitud. No registra URLs,
 cabeceras ni cuerpos mediante un registro de acceso. La aplicación registra
 solo categorías de fallos, sin trazas de errores de PostgreSQL ni parámetros
 SQL. No actives registros SQL detallados en producción. El registro del proxy
 tampoco debe contener cookies, tokens CSRF, contraseñas o cuerpos de solicitudes.
+Si se configura `PORT`, escucha en `0.0.0.0:$PORT` para la plataforma: usarlo solo
+detrás del proxy controlado y no exponer el backend directamente a Internet.
 
 El proxy debe terminar TLS, redirigir HTTP a HTTPS, conservar Host y limitar
 el cuerpo a 3 MB, las conexiones, las solicitudes y los intentos contra `/login`.

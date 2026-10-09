@@ -1,6 +1,9 @@
 import os
 
-bind = "127.0.0.1:8000"
+port = int(os.environ.get("PORT", "8000"))
+if not 1 <= port <= 65535:
+    raise RuntimeError("PORT debe ser un puerto válido.")
+bind = f"0.0.0.0:{port}" if "PORT" in os.environ else "127.0.0.1:8000"
 workers = 2
 worker_class = "sync"
 timeout = 45

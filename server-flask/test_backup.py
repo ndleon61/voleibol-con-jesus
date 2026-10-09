@@ -10,7 +10,7 @@ from unittest.mock import patch
 import psycopg
 from psycopg import sql
 from psycopg.conninfo import make_conninfo
-from backup import backup, restore, run
+from backup import backup, restore, run, restore_empty, database_fingerprint
 
 
 class BackupSafetyTests(unittest.TestCase):
@@ -58,6 +58,18 @@ class BackupRoundTripTests(unittest.TestCase):
                 self.assertEqual(conn.execute("SELECT COUNT(*) FROM administrator_sessions").fetchone()[0],0)
             self.assertEqual(before,after)
             self.assertEqual((root/"restored-logos"/filename).read_bytes(),(logos/filename).read_bytes())
+            managed_name = "voli_staging_test_" + secrets.token_hex(8)
+            managed_target = make_conninfo(database, dbname=managed_name, sslmode="verify-full")
+            with psycopg.connect(make_conninfo(database, dbname="postgres"), autocommit=True) as conn:
+                conn.execute(sql.SQL("CREATE DATABASE {} TEMPLATE template0").format(sql.Identifier(managed_name)))
+            def drop_managed():
+                with psycopg.connect(make_conninfo(database, dbname="postgres"), autocommit=True) as conn:
+                    conn.execute(sql.SQL("DROP DATABASE {}").format(sql.Identifier(managed_name)))
+            self.addCleanup(drop_managed)
+            # Unix socket fixture tests managed restore safety, not remote TLS.
+            restore_empty(destination, managed_target, managed_name)
+            self.assertEqual(database_fingerprint(database), database_fingerprint(managed_target))
+            with self.assertRaises(ValueError): restore_empty(destination, managed_target, managed_name)
             # Reusing a target is rejected, never overwritten.
             with self.assertRaises(psycopg.errors.DuplicateDatabase): restore(destination,database,name,root/"another-logo-dir")
             with psycopg.connect(database) as conn:

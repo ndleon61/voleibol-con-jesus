@@ -11,6 +11,8 @@ from scheduling import HAVANA, schedule_fields, install_scheduling
 from competitions import install_competitions, requested_tournament, management_tournament, require_open, integrity_message
 from configuration import settings
 from reliability import checked_rows
+from deployment import RailwayProxy, install_deployment, readiness
+from initialization import install_initialization
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -18,7 +20,8 @@ app = Flask(__name__, template_folder=str(PROJECT_ROOT), static_folder=None)
 app.config.update(settings())
 production = app.config["PRODUCTION"]
 if os.environ.get("TRUST_PROXY") == "1":
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0)
+    app.wsgi_app = (RailwayProxy(app.wsgi_app) if app.config["PROXY_MODE"] == "railway"
+                    else ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0))
 
 
 @app.route("/")
@@ -49,11 +52,16 @@ def get_db_connection():
 def validate_transport():
     # Host validation must precede authentication and session writes.
     request.host
+    if (app.config["STAGING"] and app.config["PROXY_MODE"] == "railway"
+            and request.path == "/healthz" and request.method in {"GET", "HEAD"}
+            and request.host.split(":", 1)[0] == "healthcheck.railway.app"):
+        return readiness(app, get_db_connection)
     if app.config["PRODUCTION"] and not request.is_secure:
         return jsonify(error="Utiliza una conexión HTTPS segura."), 400
 
 
 install_teams(app, lambda: get_db_connection())
+install_deployment(app, lambda: get_db_connection())
 install_auth(app, lambda: get_db_connection())
 install_scheduling(app, lambda: get_db_connection())
 
@@ -483,6 +491,7 @@ def get_admin_stats():
 
 
 install_competitions(app, lambda: get_db_connection(), validate_sets)
+install_initialization(app, lambda: get_db_connection())
 app.add_url_rule('/api/tournaments/<int:tournament_id>/jornadas','tournament_public_jornadas',get_jornadas)
 app.add_url_rule('/api/tournaments/<int:tournament_id>/standings','tournament_public_standings',get_standings)
 
