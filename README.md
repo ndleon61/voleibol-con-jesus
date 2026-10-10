@@ -143,8 +143,9 @@ frente a escrituras concurrentes.
 Los partidos nuevos se programan **al mejor de 3 sets**: gana el primer equipo
 que consiga 2 sets (2-0 o 2-1). En la programación se puede seleccionar
 **al mejor de 5 sets** para una final: gana el primero que consiga 3 sets.
-Los sets normales se juegan a 25 puntos y el set decisivo (tercero o quinto)
-a 15, siempre con dos puntos de ventaja. No se permiten sets adicionales
+Todos los sets se juegan a 25 puntos, incluido el tercero al mejor de tres.
+Solo el quinto set al mejor de cinco se juega a 15, siempre con dos puntos
+de ventaja. No se permiten sets adicionales
 después de ganar el partido.
 
 Antes de ejecutar esta versión sobre una base existente, aplica la migración
@@ -207,7 +208,7 @@ las comprobaciones básicas no sustituyen la validación de un partido completo.
 
 Un resultado válido termina con dos sets ganados al mejor de tres, o tres
 sets ganados al mejor de cinco. Los sets normales terminan en 25 puntos,
-o con ventaja exacta de dos si hay prórroga; el decisivo termina en 15 con
+o con ventaja exacta de dos si hay prórroga; solo el quinto termina en 15 con
 la misma regla. No se aceptan sets posteriores a la victoria, empates,
 fracciones, valores negativos,
 booleanos ni puntos superiores a 2147483647 (límite de PostgreSQL INTEGER).

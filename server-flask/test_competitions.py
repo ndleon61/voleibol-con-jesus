@@ -72,7 +72,7 @@ class CompetitionTests(unittest.TestCase):
         self.enroll(tournament)
         jornada = self.jornada(tournament)
         match = self.match(tournament,jornada,bestOf=3).json["matchId"]
-        scores = [{"team1Points":25,"team2Points":0},{"team1Points":0,"team2Points":25},{"team1Points":15,"team2Points":13}]
+        scores = [{"team1Points":25,"team2Points":0},{"team1Points":0,"team2Points":25},{"team1Points":25,"team2Points":20}]
         self.assertEqual(self.api("PUT",f"/api/admin/matches/{match}/result",{"sets":scores},tournament).status_code,200)
         standings = self.api("GET",f"/api/tournaments/{tournament}/standings").json
         self.assertEqual((standings[0]["wins"],standings[0]["setsWon"],standings[0]["setsLost"]),(1,2,1))

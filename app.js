@@ -41,7 +41,7 @@ function isValidSet(set, number, bestOf = 5) {
       set.team1Points < 0 || set.team2Points < 0 || set.team1Points > 2147483647 || set.team2Points > 2147483647) return false;
   const winner = Math.max(set.team1Points, set.team2Points);
   const loser = Math.min(set.team1Points, set.team2Points);
-  const target = number === bestOf ? 15 : 25;
+  const target = bestOf === 5 && number === 5 ? 15 : 25;
   return winner >= target && winner - loser >= 2 && (winner === target || winner - loser === 2);
 }
 

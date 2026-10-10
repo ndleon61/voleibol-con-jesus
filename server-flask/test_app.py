@@ -11,13 +11,14 @@ class AppTests(unittest.TestCase):
         def sets(*scores):
             return [{"team1Points": a, "team2Points": b} for a, b in scores]
         for scores in (sets((25, 10), (25, 23)), sets((0, 25), (0, 25)),
-                       sets((25, 0), (0, 25), (15, 13)), sets((25, 0), (0, 25), (14, 16))):
+                       sets((25, 23), (22, 25), (25, 20)), sets((25, 0), (0, 25), (24, 26))):
             self.assertIsInstance(backend.validate_sets(scores, 3), list)
         for scores in (sets((25, 0)), sets((25, 0), (0, 25)),
                        sets((25, 0), (25, 0), (15, 0)),
                        sets((25, 0), (0, 25), (14, 12)),
-                       sets((25, 0), (0, 25), (25, 0)),
-                       sets((25, 0), (0, 25), (15, 14))):
+                       sets((25, 0), (0, 25), (26, 20)),
+                       sets((25, 0), (0, 25), (15, 13)),
+                       sets((25, 0), (0, 25), (25, 24))):
             self.assertIsInstance(backend.validate_sets(scores, 3), str)
         for format in (True, "3", 4, None):
             self.assertIsInstance(backend.validate_sets(sets((25, 0), (25, 0)), format), str)

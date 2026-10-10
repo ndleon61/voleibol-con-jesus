@@ -103,7 +103,7 @@ def validate_sets(sets, best_of=3):
     """
     Validate a completed volleyball match.
 
-    Regular sets require 25 points; the deciding set requires 15, win by 2.
+    Sets require 25 points; only the fifth set requires 15, win by 2.
     New matches default to three; historical formats are supplied explicitly.
     """
 
@@ -141,7 +141,7 @@ def validate_sets(sets, best_of=3):
         if points1 == points2:
             return f"El set {index + 1} no puede terminar en empate."
 
-        target = 15 if index == best_of - 1 else 25
+        target = 15 if best_of == 5 and index == 4 else 25
         winner_points = max(points1, points2)
         loser_points = min(points1, points2)
 
