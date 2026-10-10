@@ -138,6 +138,34 @@ históricos sin fecha se compara su hora original, para evitar copiarlos por
 error. Los bloqueos y restricciones de PostgreSQL protegen el historial
 frente a escrituras concurrentes.
 
+## Formato de partidos
+
+Los partidos nuevos se programan **al mejor de 3 sets**: gana el primer equipo
+que consiga 2 sets (2-0 o 2-1). En la programación se puede seleccionar
+**al mejor de 5 sets** para una final: gana el primero que consiga 3 sets.
+Los sets normales se juegan a 25 puntos y el set decisivo (tercero o quinto)
+a 15, siempre con dos puntos de ventaja. No se permiten sets adicionales
+después de ganar el partido.
+
+Antes de ejecutar esta versión sobre una base existente, aplica la migración
+con la conexión de mantenimiento configurada de forma privada:
+
+```bash
+cd server-flask
+../.venv-clean/bin/flask --app app init-match-formats
+```
+
+La migración `007_match_formats.sql` conserva **todos los partidos existentes
+al mejor de 5**, sin cambiar resultados, fechas ni equipos. Los partidos
+pendientes pueden cambiarse a 3 desde la administración. El formato queda
+bloqueado al registrar resultados, aunque los administradores pueden corregir
+las puntuaciones. `init-staging` incluye esta migración en instalaciones nuevas.
+La migración es transaccional y se puede repetir sin alterar los formatos.
+No se ejecuta automáticamente al arrancar el servidor.
+La API de programación acepta `bestOf` como entero 3 o 5; al crear se omite
+para usar 3 y al editar se omite para conservar el formato actual. Los resultados
+y jornadas públicos incluyen el formato para validar la presentación.
+
 ## Validación e integridad
 
 Para actualizar una instalación existente, con sus variables de entorno:
@@ -177,10 +205,11 @@ responsabilidad de `validate_sets`, compartida por resultados y clasificación.
 Los accesos SQL directos requieren un usuario de base de datos de confianza;
 las comprobaciones básicas no sustituyen la validación de un partido completo.
 
-Un resultado válido termina con tres sets ganados, entre tres y cinco sets.
-Los sets 1–4 terminan en 25 puntos, o con ventaja exacta de dos si hay
-prórroga; el quinto termina en 15 con la misma regla. No se aceptan sets
-posteriores a la tercera victoria, empates, fracciones, valores negativos,
+Un resultado válido termina con dos sets ganados al mejor de tres, o tres
+sets ganados al mejor de cinco. Los sets normales terminan en 25 puntos,
+o con ventaja exacta de dos si hay prórroga; el decisivo termina en 15 con
+la misma regla. No se aceptan sets posteriores a la victoria, empates,
+fracciones, valores negativos,
 booleanos ni puntos superiores a 2147483647 (límite de PostgreSQL INTEGER).
 Si se proporciona `setNumber`, debe ser consecutivo desde 1.
 

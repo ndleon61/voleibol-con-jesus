@@ -35,7 +35,7 @@ class PostgresTeamTests(unittest.TestCase):
                 conn.execute("INSERT INTO match_sets VALUES (1, 1, 25, 10)")
             with tempfile.TemporaryDirectory() as logos, patch.dict(backend.app.config, TEAM_LOGO_DIRECTORY=logos), patch.object(backend, "get_db_connection", side_effect=connect):
                 runner = backend.app.test_cli_runner()
-                for command in ("init-auth", "init-teams", "init-teams", "init-scheduling", "init-business-rules", "init-competitions", "init-snapshots"):
+                for command in ("init-auth", "init-teams", "init-teams", "init-scheduling", "init-business-rules", "init-competitions", "init-snapshots", "init-match-formats"):
                     result = runner.invoke(args=[command])
                     self.assertEqual(result.exit_code, 0, result.output)
                 password = secrets.token_urlsafe(20)

@@ -140,11 +140,16 @@ function loadSelectedMatch() {
   }
 
   const existingSets = match.results?.sets || [];
-
-  if (existingSets.length >= 3 && existingSets.length <= 5) {
+  const bestOf = match.bestOf ?? 5;
+  const needed = Math.floor(bestOf / 2) + 1;
+  setCount.replaceChildren();
+  for (let count = needed; count <= bestOf; count++) {
+    setCount.add(new Option(`${count} sets`, String(count)));
+  }
+  if (existingSets.length >= needed && existingSets.length <= bestOf) {
     setCount.value = String(existingSets.length);
   } else {
-    setCount.value = "3";
+    setCount.value = String(needed);
   }
 
   renderSetInputs(existingSets);

@@ -36,22 +36,24 @@ function competitionDate(value) {
 }
 
 // Retain the existing validation for score presentation; ranking comes only from the API.
-function isValidSet(set, number) {
+function isValidSet(set, number, bestOf = 5) {
   if (!set || !Number.isSafeInteger(set.team1Points) || !Number.isSafeInteger(set.team2Points) ||
       set.team1Points < 0 || set.team2Points < 0 || set.team1Points > 2147483647 || set.team2Points > 2147483647) return false;
   const winner = Math.max(set.team1Points, set.team2Points);
   const loser = Math.min(set.team1Points, set.team2Points);
-  const target = number === 5 ? 15 : 25;
+  const target = number === bestOf ? 15 : 25;
   return winner >= target && winner - loser >= 2 && (winner === target || winner - loser === 2);
 }
 
 function isValidMatch(results) {
-  if (!results || !Array.isArray(results.sets) || results.sets.length < 3 || results.sets.length > 5) return false;
+  const bestOf = results?.bestOf ?? 5;
+  const needed = Math.floor(bestOf / 2) + 1;
+  if (![3, 5].includes(bestOf) || !results || !Array.isArray(results.sets) || results.sets.length < needed || results.sets.length > bestOf) return false;
   let wins1 = 0, wins2 = 0;
   for (const [index, set] of results.sets.entries()) {
-    if (!isValidSet(set, index + 1) || (set.setNumber !== undefined && set.setNumber !== index + 1)) return false;
+    if (!isValidSet(set, index + 1, bestOf) || (set.setNumber !== undefined && set.setNumber !== index + 1)) return false;
     if (set.team1Points > set.team2Points) wins1++; else wins2++;
-    if (wins1 === 3 || wins2 === 3) return index === results.sets.length - 1;
+    if (wins1 === needed || wins2 === needed) return index === results.sets.length - 1;
   }
   return false;
 }

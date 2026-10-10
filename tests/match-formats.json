@@ -1,0 +1,14 @@
+[
+  {"name":"2-0", "bestOf":3, "valid":true, "sets":[[25,0],[25,23]]},
+  {"name":"0-2", "bestOf":3, "valid":true, "sets":[[0,25],[23,25]]},
+  {"name":"2-1", "bestOf":3, "valid":true, "sets":[[25,0],[0,25],[15,13]]},
+  {"name":"1-2 extended", "bestOf":3, "valid":true, "sets":[[25,0],[0,25],[14,16]]},
+  {"name":"third after early win", "bestOf":3, "valid":false, "sets":[[25,0],[25,0],[15,0]]},
+  {"name":"third overplayed", "bestOf":3, "valid":false, "sets":[[25,0],[0,25],[25,0]]},
+  {"name":"third below target", "bestOf":3, "valid":false, "sets":[[25,0],[0,25],[14,12]]},
+  {"name":"third without margin", "bestOf":3, "valid":false, "sets":[[25,0],[0,25],[15,14]]},
+  {"name":"unfinished 1-1", "bestOf":3, "valid":false, "sets":[[25,0],[0,25]]},
+  {"name":"unfinished best of five", "bestOf":5, "valid":false, "sets":[[25,0],[25,0]]},
+  {"name":"five-set final", "bestOf":5, "valid":true, "sets":[[25,0],[0,25],[25,0],[0,25],[15,13]]},
+  {"name":"unsupported format", "bestOf":4, "valid":false, "sets":[[25,0],[25,0],[25,0]]}
+]

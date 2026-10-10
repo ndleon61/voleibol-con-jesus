@@ -7,6 +7,31 @@ import app as backend
 
 
 class AppTests(unittest.TestCase):
+    def test_best_of_three_scores_and_deciding_set(self):
+        def sets(*scores):
+            return [{"team1Points": a, "team2Points": b} for a, b in scores]
+        for scores in (sets((25, 10), (25, 23)), sets((0, 25), (0, 25)),
+                       sets((25, 0), (0, 25), (15, 13)), sets((25, 0), (0, 25), (14, 16))):
+            self.assertIsInstance(backend.validate_sets(scores, 3), list)
+        for scores in (sets((25, 0)), sets((25, 0), (0, 25)),
+                       sets((25, 0), (25, 0), (15, 0)),
+                       sets((25, 0), (0, 25), (14, 12)),
+                       sets((25, 0), (0, 25), (25, 0)),
+                       sets((25, 0), (0, 25), (15, 14))):
+            self.assertIsInstance(backend.validate_sets(scores, 3), str)
+        for format in (True, "3", 4, None):
+            self.assertIsInstance(backend.validate_sets(sets((25, 0), (25, 0)), format), str)
+        self.assertIsInstance(backend.validate_sets(sets((25, 0), (25, 0))), list)
+
+    def test_shared_best_of_three_scores(self):
+        import json
+        from pathlib import Path
+        fixtures = json.loads((Path(__file__).parent.parent / "tests/match-formats.json").read_text())
+        for item in fixtures:
+            with self.subTest(item["name"]):
+                scores = [{"team1Points": a, "team2Points": b} for a, b in item["sets"]]
+                self.assertEqual(isinstance(backend.validate_sets(scores, item["bestOf"]), list), item["valid"])
+
     def test_score_validation(self):
         for winner, loser, valid in [(25, 0, True), (26, 24, True),
                                      (27, 25, True), (26, 0, False),
@@ -15,18 +40,18 @@ class AppTests(unittest.TestCase):
             with self.subTest(winner=winner, loser=loser):
                 result = backend.validate_sets([
                     {"team1Points": winner, "team2Points": loser}
-                ] * 3)
+                ] * 3, 5)
                 self.assertEqual(isinstance(result, list), valid)
 
     def test_fifth_set_and_match_end(self):
         sets = [{"team1Points": 25, "team2Points": 0},
                 {"team1Points": 0, "team2Points": 25}] * 2
         self.assertIsInstance(backend.validate_sets(
-            sets + [{"team1Points": 15, "team2Points": 0}]), list)
+            sets + [{"team1Points": 15, "team2Points": 0}], 5), list)
         self.assertIsInstance(backend.validate_sets(
-            sets + [{"team1Points": 16, "team2Points": 0}]), str)
+            sets + [{"team1Points": 16, "team2Points": 0}], 5), str)
         self.assertIsInstance(backend.validate_sets(
-            [{"team1Points": 25, "team2Points": 0}] * 4), str)
+            [{"team1Points": 25, "team2Points": 0}] * 4, 5), str)
 
     def test_static_routes_do_not_expose_backend(self):
         client = backend.app.test_client()
@@ -42,9 +67,9 @@ class AppTests(unittest.TestCase):
         cursor = connection.__enter__.return_value.cursor.return_value.__enter__.return_value
         cursor.fetchall.side_effect = [
             [(1, 'A', None), (2, 'B', None)],
-            [(1, 1, 2, 1, 25, 0)] +
-            [(2, 1, 2, n, 25, 0) for n in (1, 2, 3)] +
-            [(3, 1, 2, n, 25, 0) for n in (1, 3, 4)],
+            [(1, 1, 2, 1, 25, 0, 5)] +
+            [(2, 1, 2, n, 25, 0, 5) for n in (1, 2, 3)] +
+            [(3, 1, 2, n, 25, 0, 5) for n in (1, 3, 4)],
         ]
         with patch.object(backend, 'get_db_connection', return_value=connection):
             response = backend.app.test_client().get('/api/standings')

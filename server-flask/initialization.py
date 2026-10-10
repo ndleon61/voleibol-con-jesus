@@ -33,6 +33,7 @@ def initialize_empty(conn, expected_name):
     conn.execute("DELETE FROM tournaments WHERE legacy_key='original_league'")
     conn.execute("DELETE FROM seasons WHERE legacy_key='original_league'")
     apply_snapshots(conn)
+    conn.execute((directory / "007_match_formats.sql").read_text(encoding="utf-8"))
     for table in ("matches", "match_sets"):
         names = conn.execute(
             "SELECT conname FROM pg_constraint WHERE conrelid=%s::regclass AND NOT convalidated",

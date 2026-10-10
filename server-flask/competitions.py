@@ -209,14 +209,14 @@ def install_competitions(app, connect, validate_sets):
                 if (parent[0] and (start is None or start<parent[0])) or (parent[1] and (end is None or end>parent[1])):
                     raise BadRequest("Las fechas del torneo deben estar dentro de la temporada.")
                 if old:
-                    matches = conn.execute("SELECT m.status,m.id,m.scheduled_at FROM matches m JOIN jornadas j ON j.id=m.jornada_id WHERE j.tournament_id=%s",(tournament_id,)).fetchall()
+                    matches = conn.execute("SELECT m.status,m.id,m.scheduled_at,m.best_of FROM matches m JOIN jornadas j ON j.id=m.jornada_id WHERE j.tournament_id=%s",(tournament_id,)).fetchall()
                     from scheduling import HAVANA
                     if any(m[2] and ((start and m[2].astimezone(HAVANA).date()<start) or (end and m[2].astimezone(HAVANA).date()>end)) for m in matches):
                         raise Conflict("Las fechas del torneo deben incluir sus partidos.")
                     if status=="completed" and old[4] not in {"completed","archived"}:
-                        for state,match_id,_ in matches:
+                        for state,match_id,_,best_of in matches:
                             scores = conn.execute("SELECT set_number,team1_points,team2_points FROM match_sets WHERE match_id=%s ORDER BY set_number",(match_id,)).fetchall()
-                            if state!="finished" or isinstance(validate_sets([{"setNumber":n,"team1Points":p1,"team2Points":p2} for n,p1,p2 in scores]),str):
+                            if state!="finished" or isinstance(validate_sets([{"setNumber":n,"team1Points":p1,"team2Points":p2} for n,p1,p2 in scores],best_of),str):
                                 raise Conflict("Completa todos los partidos con resultados válidos antes de completar el torneo.")
                     if status in {"completed","archived"} and old[4] not in {"completed","archived"}:
                         prepare_logos(conn,tournament_id)

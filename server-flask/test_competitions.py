@@ -54,7 +54,7 @@ class CompetitionTests(unittest.TestCase):
         return response.json["jornada"]["id"]
 
     def match(self,tournament,jornada,**fields):
-        return self.api("POST",f"/api/admin/jornadas/{jornada}/matches",{"team1Id":1,"team2Id":2,"date":"2026-07-15","time":"20:00",**fields},tournament)
+        return self.api("POST",f"/api/admin/jornadas/{jornada}/matches",{"team1Id":1,"team2Id":2,"date":"2026-07-15","time":"20:00","bestOf":5,**fields},tournament)
 
     def test_seasons_create_update_dates_names_and_transitions(self):
         r=self.api("POST","/api/admin/seasons",{"name":"  Temporada  2026 ","startDate":"2026-01-01","endDate":"2026-12-31"})
@@ -66,6 +66,18 @@ class CompetitionTests(unittest.TestCase):
         self.assertEqual(self.api("PUT",f"/api/admin/seasons/{id}",{"status":"planned"}).status_code,409)
         for data in ({"name":""},{"name":"A"*101},{"name":"Uno","status":"invalid"},{"name":"Uno","startDate":"2026-02-30"},{"name":"Uno","startDate":"2026-12-31","endDate":"2026-01-01"}):
             self.assertEqual(self.api("POST","/api/admin/seasons",data).status_code,400)
+
+    def test_best_of_three_tournament_completion(self):
+        tournament = self.tournament()
+        self.enroll(tournament)
+        jornada = self.jornada(tournament)
+        match = self.match(tournament,jornada,bestOf=3).json["matchId"]
+        scores = [{"team1Points":25,"team2Points":0},{"team1Points":0,"team2Points":25},{"team1Points":15,"team2Points":13}]
+        self.assertEqual(self.api("PUT",f"/api/admin/matches/{match}/result",{"sets":scores},tournament).status_code,200)
+        standings = self.api("GET",f"/api/tournaments/{tournament}/standings").json
+        self.assertEqual((standings[0]["wins"],standings[0]["setsWon"],standings[0]["setsLost"]),(1,2,1))
+        self.assertEqual(self.api("PUT",f"/api/admin/tournaments/{tournament}",{"status":"completed"}).status_code,200)
+        self.assertEqual(self.api("GET",f"/api/tournaments/{tournament}/standings").json,standings)
 
     def test_tournaments_season_dates_and_name_uniqueness(self):
         s=self.api("POST","/api/admin/seasons",{"name":"2026","startDate":"2026-01-01","endDate":"2026-12-31"}).json["season"]["id"]

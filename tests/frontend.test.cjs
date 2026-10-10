@@ -50,6 +50,16 @@ test('existing shared score validation fixtures still agree with the backend', (
   }
 });
 
+test('best-of-three and best-of-five score validation agrees with backend fixtures', () => {
+  const fixtures = JSON.parse(fs.readFileSync('tests/match-formats.json', 'utf8'));
+  const { run } = context();
+  for (const item of fixtures) {
+    const sets = item.sets.map(([team1Points, team2Points]) => ({team1Points, team2Points}));
+    assert.equal(run(`isValidMatch(${JSON.stringify({sets, bestOf:item.bestOf})})`), item.valid, item.name);
+  }
+  assert.deepEqual(JSON.parse(JSON.stringify(run(`calculateSets({bestOf:3,sets:[{team1Points:25,team2Points:0},{team1Points:25,team2Points:0}]})`))), {team1Sets:2,team2Sets:0});
+});
+
 test('standings render API order and values without recalculating or inventing points', () => {
   const { run, element } = context();
   const data = fixture();

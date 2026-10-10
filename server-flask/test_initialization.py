@@ -124,9 +124,9 @@ class FreshInstallationTests(unittest.TestCase):
         match = api("POST", f"/api/admin/jornadas/{jornada}/matches" + scope,
                     {"team1Id": first["id"], "team2Id": second["id"], "date": "2026-10-10", "time": "18:00"})["matchId"]
         api("PUT", f"/api/admin/matches/{match}/result" + scope,
-            {"sets": [{"team1Points": 25, "team2Points": 10}] * 3}, 200)
+            {"sets": [{"team1Points": 25, "team2Points": 10}] * 2}, 200)
         standings = client.get(f"/api/tournaments/{tournament}/standings").json
-        self.assertEqual((standings[0]["wins"], standings[0]["setsWon"], standings[1]["losses"]), (1, 3, 1))
+        self.assertEqual((standings[0]["wins"], standings[0]["setsWon"], standings[1]["losses"]), (1, 2, 1))
         api("PUT", f"/api/admin/tournaments/{tournament}", {"status": "completed"}, 200)
         api("PUT", f"/api/admin/teams/{first['id']}", {"name": "Nombre nuevo", "remove_logo": True}, 200)
         historical = client.get(f"/api/tournaments/{tournament}/teams").json

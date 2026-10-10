@@ -55,7 +55,7 @@ class AuthenticationTests(unittest.TestCase):
         self.connection.execute.side_effect = self.execute
         cursor = self.connection.cursor.return_value.__enter__.return_value
         cursor.fetchall.return_value = []
-        cursor.fetchone.return_value = (1, 1, 2, 1)
+        cursor.fetchone.return_value = (1, 1, 2, 1, 5)
         self.counts = {}
         self.active = True
         self.db_patch = patch.object(backend, 'get_db_connection', return_value=self.connection)

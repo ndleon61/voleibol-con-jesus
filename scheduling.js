@@ -32,6 +32,7 @@
     el("schedule-jornada").disabled = busy || Boolean(match);
     el("schedule-team1").disabled = busy || Boolean(match && locked(match));
     el("schedule-team2").disabled = busy || Boolean(match && locked(match));
+    el("schedule-best-of").disabled = busy || Boolean(match && locked(match));
   }
   function resetJornada() {
     jornadaForm.reset();
@@ -100,7 +101,7 @@
       const title = document.createElement("strong");
       title.textContent = `${match.team1} vs ${match.team2}`;
       const detail = document.createElement("p");
-      detail.textContent = `${match.startsAt ? dateFormat.format(new Date(match.startsAt)) : `Fecha por confirmar · ${match.time}`} · ${match.status === "finished" ? "Finalizado" : "Pendiente"}`;
+      detail.textContent = `${match.startsAt ? dateFormat.format(new Date(match.startsAt)) : `Fecha por confirmar · ${match.time}`} · ${match.status === "finished" ? "Finalizado" : "Pendiente"} · Mejor de ${match.bestOf ?? 5} sets`;
       const actions = document.createElement("div");
       actions.className = "schedule-actions";
       const remove = button("Eliminar", () => confirmDelete(`/api/admin/matches/${match.id}`, `¿Eliminar el partido ${match.team1} vs ${match.team2}?`), locked(match));
@@ -112,6 +113,7 @@
         el("schedule-team2").value = match.team2Id;
         el("schedule-date").value = match.date || "";
         el("schedule-time").value = match.time;
+        el("schedule-best-of").value = String(match.bestOf ?? 5);
         el("schedule-form-title").textContent = "Editar partido";
         el("cancel-schedule-edit").hidden = false;
         message("scheduled-match-message", "");
@@ -187,7 +189,7 @@
   matchForm.addEventListener("submit", event => {
     event.preventDefault();
     const jornada = el("schedule-jornada").value;
-    const data = {team1Id:el("schedule-team1").value, team2Id:el("schedule-team2").value, date:el("schedule-date").value, time:el("schedule-time").value};
+    const data = {team1Id:el("schedule-team1").value, team2Id:el("schedule-team2").value, date:el("schedule-date").value, time:el("schedule-time").value, bestOf:Number(el("schedule-best-of").value)};
     if (!jornada || !data.team1Id || !data.team2Id || !data.date || !data.time) {
       message("scheduled-match-message", "Selecciona una jornada, dos equipos, la fecha y la hora.", true); return;
     }

@@ -58,7 +58,7 @@ def install_scheduling(app, connect):
             jornadas = conn.execute("SELECT id, number FROM jornadas WHERE tournament_id=COALESCE(%s,(SELECT id FROM tournaments WHERE is_public=TRUE)) ORDER BY number, id",(scope,)).fetchall()
             matches = conn.execute(
                 "SELECT m.id, m.jornada_id, m.team1_id, m.team2_id, m.match_time, m.scheduled_at, m.status, "
-                "EXISTS (SELECT 1 FROM match_sets s WHERE s.match_id = m.id), t1.name, t2.name, m.duration_minutes "
+                "EXISTS (SELECT 1 FROM match_sets s WHERE s.match_id = m.id), t1.name, t2.name, m.duration_minutes, m.best_of "
                 "FROM matches m JOIN jornadas j ON j.id=m.jornada_id "
                 "JOIN tournament_team_identities t1 ON t1.id = m.team1_id AND t1.tournament_id=j.tournament_id "
                 "JOIN tournament_team_identities t2 ON t2.id = m.team2_id AND t2.tournament_id=j.tournament_id "
@@ -66,13 +66,14 @@ def install_scheduling(app, connect):
                 "ORDER BY m.scheduled_at NULLS LAST, m.match_time, m.id"
             ,(scope,)).fetchall()
         grouped = {row[0]: {"id": row[0], "number": row[1], "games": []} for row in jornadas}
-        for id, jornada, team1, team2, time, start, status, scores, name1, name2, duration in matches:
+        for id, jornada, team1, team2, time, start, status, scores, name1, name2, duration, best_of in matches:
             grouped[jornada]["games"].append({
                 "id": id, "team1Id": team1, "team2Id": team2, "team1": name1, "team2": name2,
                 "time": start.astimezone(HAVANA).strftime("%H:%M") if start else time.strftime("%H:%M"),
                 "status": "finished" if status == "finished" else "scheduled", "hasResults": scores,
                 **schedule_fields(start),
                 "durationMinutes": duration,
+                "bestOf": best_of,
             })
         return jsonify(list(grouped.values()))
 
@@ -135,7 +136,7 @@ def install_scheduling(app, connect):
                 existing = None
                 if match_id is not None:
                     existing = conn.execute(
-                        "SELECT m.jornada_id, m.team1_id, m.team2_id, m.status, m.duration_minutes FROM matches m JOIN jornadas j ON j.id=m.jornada_id WHERE m.id = %s AND j.tournament_id=%s FOR UPDATE OF m", (match_id,scope),
+                        "SELECT m.jornada_id, m.team1_id, m.team2_id, m.status, m.duration_minutes, m.best_of FROM matches m JOIN jornadas j ON j.id=m.jornada_id WHERE m.id = %s AND j.tournament_id=%s FOR UPDATE OF m", (match_id,scope),
                     ).fetchone()
                     if not existing:
                         return jsonify(error="No se encontró el partido."), 404
@@ -143,8 +144,11 @@ def install_scheduling(app, connect):
                     recorded = existing[3] == "finished" or conn.execute(
                         "SELECT EXISTS (SELECT 1 FROM match_sets WHERE match_id = %s)", (match_id,),
                     ).fetchone()[0]
-                    if recorded and (team1, team2) != existing[1:3]:
-                        return jsonify(error="No se pueden cambiar los equipos de un partido con resultados registrados."), 409
+                    if recorded and ((team1, team2) != existing[1:3] or data.get("bestOf", existing[5]) != existing[5]):
+                        return jsonify(error="No se pueden cambiar los equipos ni el formato de un partido con resultados registrados."), 409
+                best_of = data.get("bestOf", existing[5] if existing else 3)
+                if type(best_of) is not int or best_of not in (3, 5):
+                    raise ValueError("El formato debe ser al mejor de 3 o de 5 sets.")
                 if "jornadaId" in data and positive_integer(data["jornadaId"], "La jornada") != jornada_id:
                     raise ValueError("La jornada indicada no coincide con la del partido.")
                 duration = positive_integer(data.get("durationMinutes", existing[4] if existing else DEFAULT_DURATION_MINUTES), "La duración")
@@ -169,14 +173,14 @@ def install_scheduling(app, connect):
                     return jsonify(error="Ya existe este partido en la jornada para ese horario."), 409
                 if match_id is None:
                     row = conn.execute(
-                        "INSERT INTO matches (jornada_id, team1_id, team2_id, match_time, scheduled_at, status, duration_minutes) "
-                        "VALUES (%s, %s, %s, %s, %s, 'scheduled', %s) RETURNING id",
-                        (jornada_id, team1, team2, local_time, start, duration),
+                        "INSERT INTO matches (jornada_id, team1_id, team2_id, match_time, scheduled_at, status, duration_minutes, best_of) "
+                        "VALUES (%s, %s, %s, %s, %s, 'scheduled', %s, %s) RETURNING id",
+                        (jornada_id, team1, team2, local_time, start, duration, best_of),
                     ).fetchone()
                 else:
                     row = conn.execute(
-                        "UPDATE matches SET team1_id = %s, team2_id = %s, match_time = %s, scheduled_at = %s, duration_minutes = %s "
-                        "WHERE id = %s RETURNING id", (team1, team2, local_time, start, duration, match_id),
+                        "UPDATE matches SET team1_id = %s, team2_id = %s, match_time = %s, scheduled_at = %s, duration_minutes = %s, best_of = %s "
+                        "WHERE id = %s RETURNING id", (team1, team2, local_time, start, duration, best_of, match_id),
                     ).fetchone()
         except ValueError as error:
             return jsonify(error=str(error)), 400
@@ -236,3 +240,10 @@ def install_scheduling(app, connect):
                 from snapshots import apply_snapshots
                 apply_snapshots(conn)
         click.echo("Reglas de integridad preparadas. Se conservó el historial de la liga.")
+
+    @app.cli.command("init-match-formats")
+    def init_match_formats():
+        """Conserva los formatos anteriores y prepara partidos al mejor de tres."""
+        with connect() as conn:
+            conn.execute((Path(__file__).parent / "migrations/007_match_formats.sql").read_text(encoding="utf-8"))
+        click.echo("Formatos preparados. Los partidos existentes conservan su formato.")

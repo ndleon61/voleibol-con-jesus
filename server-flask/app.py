@@ -99,17 +99,19 @@ def internal_error(error):
     return jsonify(error="No se pudo completar la solicitud. Inténtalo de nuevo."), 500
 
 
-def validate_sets(sets):
+def validate_sets(sets, best_of=3):
     """
     Validate a completed volleyball match.
 
-    Sets 1-4: first to at least 25, win by 2.
-    Set 5: first to at least 15, win by 2.
-    A team must win 3 sets to win the match.
+    Regular sets require 25 points; the deciding set requires 15, win by 2.
+    New matches default to three; historical formats are supplied explicitly.
     """
 
-    if not isinstance(sets, list) or not 3 <= len(sets) <= 5:
-        return "Un partido finalizado debe contener entre 3 y 5 sets."
+    if type(best_of) is not int or best_of not in (3, 5):
+        return "El formato debe ser al mejor de 3 o de 5 sets."
+    needed = best_of // 2 + 1
+    if not isinstance(sets, list) or not needed <= len(sets) <= best_of:
+        return f"Un partido al mejor de {best_of} debe contener entre {needed} y {best_of} sets."
 
     wins1 = 0
     wins2 = 0
@@ -139,7 +141,7 @@ def validate_sets(sets):
         if points1 == points2:
             return f"El set {index + 1} no puede terminar en empate."
 
-        target = 15 if index == 4 else 25
+        target = 15 if index == best_of - 1 else 25
         winner_points = max(points1, points2)
         loser_points = min(points1, points2)
 
@@ -164,24 +166,14 @@ def validate_sets(sets):
             wins2 += 1
 
         # No sets may be played after a team has won the match.
-        if wins1 == 3 or wins2 == 3:
+        if wins1 == needed or wins2 == needed:
             if index != len(sets) - 1:
-                return "No se pueden registrar más sets después de que un equipo gane 3 sets."
+                return f"No se pueden registrar más sets después de que un equipo gane {needed} sets."
 
         validated_sets.append((index + 1, points1, points2))
 
-    if wins1 != 3 and wins2 != 3:
-        return "Un equipo debe ganar exactamente 3 sets."
-
-    # A fifth set is required only when the first four sets split 2-2.
-    if len(sets) == 5 and (wins1, wins2) not in ((3, 2), (2, 3)):
-        return "Un quinto set solo es válido cuando el partido termina 3-2."
-
-    if len(sets) == 4 and (wins1, wins2) not in ((3, 1), (1, 3)):
-        return "Un partido de cuatro sets debe terminar 3-1."
-
-    if len(sets) == 3 and (wins1, wins2) not in ((3, 0), (0, 3)):
-        return "Un partido de tres sets debe terminar 3-0."
+    if wins1 != needed and wins2 != needed:
+        return f"Un equipo debe ganar exactamente {needed} sets."
 
     return validated_sets
 
@@ -201,7 +193,7 @@ def get_jornadas(tournament_id=None):
                     t1.name AS team1,
                     t2.name AS team2,
                     m.status,
-                    m.scheduled_at,m.team1_id,m.team2_id,t1.logo_path,t2.logo_path
+                    m.scheduled_at,m.team1_id,m.team2_id,t1.logo_path,t2.logo_path,m.best_of
                 FROM jornadas AS j
                 LEFT JOIN matches AS m
                     ON m.jornada_id = j.id
@@ -243,7 +235,7 @@ def get_jornadas(tournament_id=None):
         team2,
         status,
         scheduled_at,
-        team1_id,team2_id,logo1,logo2,
+        team1_id,team2_id,logo1,logo2,best_of,
     ) in rows:
         if jornada_id not in jornadas_by_id:
             jornadas_by_id[jornada_id] = {
@@ -262,13 +254,14 @@ def get_jornadas(tournament_id=None):
             "team2": team2,
             "team1Id":team1_id,"team2Id":team2_id,"team1Logo":logo1 or "","team2Logo":logo2 or "",
             "status": status or "",
+            "bestOf": best_of,
             **schedule_fields(scheduled_at),
         }
 
         match_sets = sets_by_match.get(match_id, [])
 
         if match_sets:
-            game["results"] = {"sets": match_sets}
+            game["results"] = {"sets": match_sets, "bestOf": best_of}
 
         jornadas_by_id[jornada_id]["games"].append(game)
 
@@ -295,7 +288,7 @@ def get_standings(tournament_id=None):
                     m.team2_id,
                     ms.set_number,
                     ms.team1_points,
-                    ms.team2_points
+                    ms.team2_points, m.best_of
                 FROM matches AS m
                 JOIN match_sets AS ms
                     ON ms.match_id = m.id
@@ -319,12 +312,13 @@ def get_standings(tournament_id=None):
 
     matches_by_id = {}
 
-    for match_id, team1_id, team2_id, set_number, points1, points2 in rows:
+    for match_id, team1_id, team2_id, set_number, points1, points2, best_of in rows:
         if match_id not in matches_by_id:
             matches_by_id[match_id] = {
                 "team1_id": team1_id,
                 "team2_id": team2_id,
                 "sets": [],
+                "bestOf": best_of,
             }
 
         matches_by_id[match_id]["sets"].append(
@@ -342,7 +336,7 @@ def get_standings(tournament_id=None):
                 or isinstance(validate_sets([
                     {"team1Points": p1, "team2Points": p2}
                     for _, p1, p2 in sets
-                ]), str)):
+                ], match["bestOf"]), str)):
             continue
 
         sets1 = sum(1 for _, p1, p2 in sets if p1 > p2)
@@ -385,11 +379,6 @@ def save_match_result(match_id):
             "error": "Envía los resultados con una lista de sets."
         }), 400
 
-    validated_sets = validate_sets(data["sets"])
-
-    if isinstance(validated_sets, str):
-        return jsonify({"error": validated_sets}), 400
-
     # The transaction makes replacing the old result atomic.
     # If any database operation fails, the changes are rolled back.
     try:
@@ -397,7 +386,7 @@ def save_match_result(match_id):
             with conn.cursor() as cur:
                 scope = management_tournament(conn)
                 cur.execute("""
-                    SELECT m.id, m.team1_id, m.team2_id, j.tournament_id
+                    SELECT m.id, m.team1_id, m.team2_id, j.tournament_id, m.best_of
                     FROM matches m JOIN jornadas j ON j.id=m.jornada_id
                     WHERE m.id = %s AND j.tournament_id=%s
                     FOR UPDATE OF m
@@ -410,6 +399,9 @@ def save_match_result(match_id):
                         "error": f"No se encontró el partido {match_id}."
                     }), 404
                 require_open(conn,match[3])
+                validated_sets = validate_sets(data["sets"], match[4])
+                if isinstance(validated_sets, str):
+                    return jsonify(error=validated_sets), 400
 
                 # Delete the previous scores before inserting corrections.
                 cur.execute("""
@@ -455,6 +447,7 @@ def save_match_result(match_id):
         "message": "Resultado guardado correctamente.",
         "matchId": match_id,
         "status": "finished",
+        "bestOf": match[4],
         "sets": [
             {
                 "setNumber": number,

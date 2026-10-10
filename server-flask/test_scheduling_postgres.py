@@ -33,7 +33,7 @@ class PostgresSchedulingTests(unittest.TestCase):
             conn.execute("INSERT INTO teams VALUES (1, 'Uno', NULL), (2, 'Dos', NULL), (3, 'Tres', NULL)")
             conn.execute("INSERT INTO matches VALUES (1, 1, 1, 2, '18:00', 'finished'), (2, 1, 1, 3, '19:00', '')")
         with patch.object(backend, "get_db_connection", side_effect=cls.connect):
-            for command in ("init-auth", "init-scheduling", "init-scheduling", "init-business-rules", "init-business-rules", "init-competitions", "init-competitions", "init-snapshots"):
+            for command in ("init-auth", "init-scheduling", "init-scheduling", "init-business-rules", "init-business-rules", "init-competitions", "init-competitions", "init-snapshots", "init-match-formats"):
                 result = backend.app.test_cli_runner().invoke(args=[command])
                 if result.exit_code:
                     raise AssertionError(result.output)
@@ -57,7 +57,7 @@ class PostgresSchedulingTests(unittest.TestCase):
             conn.execute("INSERT INTO teams VALUES (1, 'Uno', NULL), (2, 'Dos', NULL), (3, 'Tres', NULL)")
             conn.execute("INSERT INTO tournament_teams SELECT (SELECT id FROM tournaments WHERE legacy_key='original_league'),id FROM teams")
             conn.execute("INSERT INTO jornadas VALUES (1, 1), (2, 2)")
-            conn.execute("INSERT INTO matches (id, jornada_id, team1_id, team2_id, match_time, status) VALUES (1, 1, 1, 2, '18:00', 'finished'), (2, 1, 1, 3, '19:00', '')")
+            conn.execute("INSERT INTO matches (id, jornada_id, team1_id, team2_id, match_time, status, best_of) VALUES (1, 1, 1, 2, '18:00', 'finished', 5), (2, 1, 1, 3, '19:00', '', 5)")
             conn.execute("INSERT INTO match_sets VALUES (1, 1, 25, 10), (1, 2, 25, 10), (1, 3, 25, 10)")
             conn.execute("DELETE FROM administrator_login_attempts")
         db_patch = patch.object(backend, "get_db_connection", side_effect=self.connect)
@@ -92,6 +92,45 @@ class PostgresSchedulingTests(unittest.TestCase):
         self.assertEqual(self.request("PUT", "/api/admin/jornadas/2", {"number":1}).status_code, 409)
         self.assertEqual(self.request("PUT", "/api/admin/jornadas/999", {"number":9}).status_code, 404)
         self.assertEqual(self.request("DELETE", "/api/admin/jornadas/999").status_code, 404)
+
+    def test_three_set_default_corrections_and_history(self):
+        id = self.request("POST", "/api/admin/jornadas/2/matches", self.match()).json["matchId"]
+        self.assertEqual(self.client.get("/api/jornadas").json[1]["games"][0]["bestOf"], 3)
+        scores = [{"team1Points":25,"team2Points":10}] * 2
+        self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}/result", {"sets":scores}).status_code, 200)
+        before = self.client.get("/api/jornadas").json
+        self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}/result", {"sets":scores * 2}).status_code, 400)
+        self.assertEqual(self.client.get("/api/jornadas").json, before)
+        self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}", self.match(bestOf=5)).status_code, 409)
+        reverse = [{"team1Points":10,"team2Points":25}] * 2
+        for _ in range(2):
+            self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}/result", {"sets":reverse}).status_code, 200)
+        table = {row["team"]:row for row in self.client.get("/api/standings").json}
+        self.assertEqual((table["Uno"]["wins"],table["Uno"]["losses"],table["Uno"]["setsWon"],table["Uno"]["setsLost"]), (1,1,3,2))
+        with self.connect() as conn:
+            self.assertEqual(conn.execute("SELECT count(*) FROM match_sets WHERE match_id=%s",(id,)).fetchone()[0], 2)
+        with self.assertRaises(psycopg.errors.CheckViolation), self.connect() as conn:
+            conn.execute("UPDATE matches SET best_of=5 WHERE id=%s", (id,))
+
+    def test_final_format_validation_and_pending_edit(self):
+        for format in (4, True, "3", None):
+            self.assertEqual(self.request("POST", "/api/admin/jornadas/2/matches", self.match(bestOf=format)).status_code, 400)
+        id = self.request("POST", "/api/admin/jornadas/2/matches", self.match(bestOf=5)).json["matchId"]
+        self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}", self.match()).status_code, 200)
+        self.assertEqual(self.client.get("/api/admin/jornadas").json[1]["games"][0]["bestOf"], 5)
+        for format in (3, 5):
+            self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}", self.match(bestOf=format)).status_code, 200)
+        scores = [{"team1Points":25,"team2Points":0},{"team1Points":0,"team2Points":25}] * 2 + [{"team1Points":15,"team2Points":13}]
+        self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}/result", {"sets":scores[:2]}).status_code, 400)
+        self.assertEqual(self.request("PUT", f"/api/admin/matches/{id}/result", {"sets":scores}).status_code, 200)
+
+    def test_format_migration_preserves_existing_results(self):
+        before = self.client.get("/api/jornadas").json
+        for _ in range(2):
+            result = backend.app.test_cli_runner().invoke(args=["init-match-formats"])
+            self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(self.client.get("/api/jornadas").json, before)
+        self.assertEqual(before[0]["games"][0]["bestOf"], 5)
 
     def test_nonempty_jornada_cannot_be_deleted(self):
         self.assertEqual(self.request("DELETE", "/api/admin/jornadas/1").status_code, 409)

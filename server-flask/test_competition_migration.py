@@ -43,3 +43,8 @@ class LegacyCompetitionMigrationTests(unittest.TestCase):
             self.assertEqual(conn.execute("SELECT DISTINCT tournament_id FROM jornadas").fetchall(), [(tournament,)])
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM seasons").fetchone()[0], 1)
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM tournaments").fetchone()[0], 1)
+            scores = conn.execute("SELECT * FROM match_sets ORDER BY match_id,set_number").fetchall()
+            for _ in range(2):
+                conn.execute((migrations / "007_match_formats.sql").read_text())
+            self.assertEqual(conn.execute("SELECT id,best_of FROM matches ORDER BY id").fetchall(), [(31,5),(32,5)])
+            self.assertEqual(conn.execute("SELECT * FROM match_sets ORDER BY match_id,set_number").fetchall(), scores)

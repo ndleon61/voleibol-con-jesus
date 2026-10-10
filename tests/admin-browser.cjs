@@ -13,7 +13,7 @@ const teams = [
 ];
 const sets = [1, 2, 3].map(setNumber => ({ setNumber, team1Points: 25, team2Points: 10 }));
 const jornadas = [{ id: 1, number: 1, games: [
-  { id: 1, team1Id: 1, team2Id: 2, team1: teams[0].name, team2: teams[1].name, status: 'scheduled', startsAt: '2099-07-16T00:00:00Z', date: '2099-07-15', time: '20:00', results: { sets: [] } },
+  { id: 1, bestOf: 3, team1Id: 1, team2Id: 2, team1: teams[0].name, team2: teams[1].name, status: 'scheduled', startsAt: '2099-07-16T00:00:00Z', date: '2099-07-15', time: '20:00', results: { sets: [] } },
   { id: 2, team1Id: 1, team2Id: 2, team1: teams[0].name, team2: teams[1].name, status: 'finished', startsAt: '2026-07-16T00:00:00Z', date: '2026-07-15', time: '20:00', results: { sets } },
 ] }];
 const standings = teams.map((team, i) => ({ teamId: team.id, team: team.name, wins: i ? 0 : 1, losses: i === 1 ? 1 : 0, setsWon: i ? 0 : 3, setsLost: i === 1 ? 3 : 0 }));
@@ -95,16 +95,24 @@ async function overflow(page) {
         await page.locator('#scheduled-match-list li').last().getByRole('button', { name: 'Editar', exact: true }).click();
         assert.equal(await page.locator('#schedule-team1').isDisabled(), true);
         assert.equal(await page.locator('#schedule-team2').isDisabled(), true);
+        assert.equal(await page.locator('#schedule-best-of').isDisabled(), true);
+        assert.equal(await page.locator('#schedule-best-of').inputValue(), '5');
         await page.locator('#cancel-schedule-edit').click();
+        assert.equal(await page.locator('#schedule-best-of').inputValue(), '3');
+        assert.equal(await page.locator('#schedule-best-of').isDisabled(), false);
         await page.screenshot({ path: path.join(output, `${name}-${width}-schedule.png`) });
         await page.locator('#admin-nav a[href="#result-entry"]').click();
         await page.locator('#match-select').selectOption('2');
         assert.equal(await page.locator('.team1-points').first().inputValue(), '25');
         assert.equal(await page.locator('.team2-points').first().inputValue(), '10');
-        await page.locator('#match-select').selectOption('1');
         await page.locator('#set-count').selectOption('5');
         assert.equal(await page.locator('.set-row').count(), 5);
+        await page.locator('#match-select').selectOption('1');
+        assert.equal(await page.locator('#set-count').inputValue(), '2');
+        assert.deepEqual(await page.locator('#set-count option').evaluateAll(options => options.map(o => o.value)), ['2','3']);
         await page.locator('#set-count').selectOption('3');
+        assert.equal(await page.locator('.set-row').count(), 3);
+        await page.locator('#set-count').selectOption('2');
         for (const input of await page.locator('.team1-points').all()) await input.fill('25');
         for (const input of await page.locator('.team2-points').all()) await input.fill('10');
         await overflow(page);

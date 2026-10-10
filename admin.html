@@ -75,6 +75,7 @@
                     <div class="form-field count-field">
                         <label for="set-count">Cantidad de sets</label>
                         <select id="set-count">
+                            <option value="2">2 sets</option>
                             <option value="3">3 sets</option>
                             <option value="4">4 sets</option>
                             <option value="5">5 sets</option>
@@ -179,6 +180,13 @@
                                     <label for="schedule-time">Hora de Cuba</label>
                                     <input id="schedule-time" type="time" step="60" required>
                                 </div>
+                            </div>
+                            <div class="form-field">
+                                <label for="schedule-best-of">Formato del partido</label>
+                                <select id="schedule-best-of">
+                                    <option value="3">Al mejor de 3 sets (gana 2)</option>
+                                    <option value="5">Al mejor de 5 sets (gana 3)</option>
+                                </select>
                             </div>
                             <div class="team-form-actions">
                                 <button id="save-scheduled-match" type="submit">Guardar partido</button>

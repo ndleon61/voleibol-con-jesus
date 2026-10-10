@@ -206,12 +206,35 @@ pública ni sustituye autenticación. No cambiar la clave Flask al reiniciar.
 
 Los seis upgrades existentes presuponen tablas antiguas. La nueva base
 `000_fresh_base.sql` se ejecuta **solo** mediante el comando protegido
-`init-staging`, seguido de 001--006 dentro de una única transacción.
+`init-staging`, seguido de 001--007 dentro de una única transacción.
 Se retiran únicamente los placeholders originales creados por 005 en esa
 transacción vacía, sin registros importados. No se crean equipos, temporadas,
 torneos ni cuentas de ejemplo. Se validan los CHECK históricos NOT VALID en el
 esquema nuevo. Las instalaciones existentes siguen usando sus comandos actuales;
 **no ejecutar 000 ni init-staging en la base local**.
+
+Para actualizar el staging ya inicializado, la nueva migración de formatos
+se ejecuta con la conexión de mantenimiento privada, antes de arrancar la
+versión nueva: `python -m flask --app server-flask/app.py init-match-formats`.
+No se ejecuta al arrancar Gunicorn. Conserva todos los partidos anteriores al
+mejor de cinco y sus resultados; los nuevos son al mejor de tres por defecto.
+La administración permite elegir cinco para una final antes de registrar sets.
+Hacer una copia de seguridad antes de migrar. No usar `init-staging` sobre una
+base con datos. Para revertir el código, conservar la columna y la migración:
+la versión anterior no interpreta los resultados nuevos 2-0 o 2-1, por lo que
+se requiere una versión compatible con ambos formatos para no ocultarlos.
+
+Registro autorizado del 10 de octubre de 2026: se aplicó
+`007_match_formats.sql` en `voli_staging_2026` (PostgreSQL 18.6), como
+`voli_maintenance`, con TLS verificado y channel binding obligatorio. Antes
+se generó un archivo custom con pg_dump 18.6 y se verificó mediante
+pg_restore 18.6 y checksum; está en un directorio privado ignorado por Git,
+con permisos 700/600. La comparación transaccional del contenido confirmó
+que equipos, temporadas, torneos, inscripciones, jornadas, partidos, sets y
+administradores no cambiaron. Los 10 partidos existentes conservan `best_of=5`;
+el default para nuevas filas es 3. Se verificaron la restricción de formatos
+y el disparador que protege partidos con resultados. No se modificaron
+la base local, media ni permisos de los roles.
 
 El comando requiere confirmación, nombre explícito `voli_staging_...`, SSL
 verify-full, conexión directa, versión 18.6+ de la rama 18 y ausencia de objetos
